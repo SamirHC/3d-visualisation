@@ -40,9 +40,20 @@ class Triangle:
         self.v2 = v2
         self.v3 = v3
 
+    @property
     def normal(self):
         return np.cross(self.v2-self.v1, self.v3-self.v1)
 
+#Rendering
+for triangle in triangles:
+    vertices = [triangle.v1, triangle.v2, triangle.v3]
+    vectors_to_camera = []
+    for vertex in vertices:
+        vectors_to_camera.append(camera_position - vertex)
+
+for vector in vectors_to_camera:
+    
 #Testing
+triangles = []
 tri1 = Triangle(np.array([1, 2, 3]), np.array([0, 0, 1]), np.array([4, 1, 2]))
-print(tri1.normal())
+triangles.append(tri1)
