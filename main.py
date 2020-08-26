@@ -29,8 +29,13 @@ def Cross(matrix1, matrix2):  # Calculates the cross product of two (3, 1) matri
     cx, cy, cz = ay*bz - az*by, az*bx - ax*bz, ax*by - ay*bx
     return np.array([cx, cy, cz])
 
-def unit_vector(vector):
+def unitVector(vector):
     return vector / np.linalg.norm(vector)
+
+def angleBetweenVectors(v1, v2):
+    v1_u = unitVector(v1)
+    v2_u = unitVector(v2)
+    return np.arccos(np.clip(np.dot(v1_u, v2_u), -1.0, 1.0))
 
 # Camera
 camera_position = np.array([0, 0, 0])  # Initially at the origin, position given as a coordinate
