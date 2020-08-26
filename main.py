@@ -29,6 +29,9 @@ def Cross(matrix1, matrix2):  # Calculates the cross product of two (3, 1) matri
     cx, cy, cz = ay*bz - az*by, az*bx - ax*bz, ax*by - ay*bx
     return np.array([cx, cy, cz])
 
+def unit_vector(vector):
+    return vector / np.linalg.norm(vector)
+
 # Camera
 camera_position = np.array([0, 0, 0])  # Initially at the origin, position given as a coordinate
 camera_direction = np.array([1, 0, 0])  # Initially looking parallel to the positive x-axis, direction is given as a unit vector
@@ -44,6 +47,11 @@ class Triangle:
     def normal(self):
         return np.cross(self.v2-self.v1, self.v3-self.v1)
 
+#Testing
+triangles = []
+tri1 = Triangle(np.array([1, 2, 3]), np.array([0, 0, 1]), np.array([4, 1, 2]))
+triangles.append(tri1)
+
 #Rendering
 for triangle in triangles:
     vertices = [triangle.v1, triangle.v2, triangle.v3]
@@ -52,8 +60,4 @@ for triangle in triangles:
         vectors_to_camera.append(camera_position - vertex)
 
 for vector in vectors_to_camera:
-    
-#Testing
-triangles = []
-tri1 = Triangle(np.array([1, 2, 3]), np.array([0, 0, 1]), np.array([4, 1, 2]))
-triangles.append(tri1)
+    pass
