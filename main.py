@@ -18,6 +18,9 @@ def Dot(matrix1, matrix2):
     if matrix1_columns != matrix2_rows:
         raise ValueError("You cannot dot product matrices where the first matrix column is of different dimension to the second matrix row")
     new_matrix = np.zeros((matrix1_rows, matrix2_columns))  # Creates an empty new_matrix which we will store the result in
+    for i in range(matrix1_rows):
+        for j in range(matrix2_columns):
+            new_matrix[i, j] = np.sum(matrix1[i]*matrix2[:, j])
     return new_matrix
 #Testing
 a = np.array([
@@ -29,4 +32,4 @@ b = np.array([
     [1, 4, 3],
     [2, 5, 4],
 ])
-print(Dot(a, b))
+print(Dot(b, a))
