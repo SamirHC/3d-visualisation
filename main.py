@@ -30,9 +30,19 @@ def Cross(matrix1, matrix2):  # Calculates the cross product of two (3, 1) matri
     return np.array([cx, cy, cz])
 
 # Camera
-camera_position = np.array([[0], [0], [0]])  # Initially at the origin, position given as a coordinate
-camera_direction = np.array([[1], [0], [0]])  # Initially looking parallel to the positive x-axis, direction is given as a unit vector
+camera_position = np.array([0, 0, 0])  # Initially at the origin, position given as a coordinate
+camera_direction = np.array([1, 0, 0])  # Initially looking parallel to the positive x-axis, direction is given as a unit vector
 
+#Objects
+class Triangle:
+    def __init__(self, v1, v2, v3):  # Vertices of the triangle, (should be np.array of shape (3, 1))
+        self.v1 = v1
+        self.v2 = v2
+        self.v3 = v3
+
+    def normal(self):
+        return np.cross(self.v2-self.v1, self.v3-self.v1)
 
 #Testing
-
+tri1 = Triangle(np.array([1, 2, 3]), np.array([0, 0, 1]), np.array([4, 1, 2]))
+print(tri1.normal())
