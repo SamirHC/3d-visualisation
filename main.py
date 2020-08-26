@@ -1,15 +1,15 @@
-import pygame as p
+#import pygame as p
 import math
 import numpy as np
 
-p.init()
+#p.init()
 
 # Display Settings
 display_width = 800
 display_height = 600
-display = p.display.set_mode((display_width, display_height))
+# display = p.display.set_mode((display_width, display_height))
 CAPTION = "3d"
-p.display.set_caption(CAPTION)
+# p.display.set_caption(CAPTION)
 
 # Matrix functions
 def Dot(matrix1, matrix2):  # Calculates the dot product of two matrices
@@ -29,9 +29,10 @@ def Cross(matrix1, matrix2):  # Calculates the cross product of two (3, 1) matri
     cx, cy, cz = ay*bz - az*by, az*bx - ax*bz, ax*by - ay*bx
     return np.array([cx, cy, cz])
 
-#Testing
-a = np.array([1, 2, 3])
-b = np.array([2, 5, 4])
+# Camera
+camera_position = np.array([[0], [0], [0]])  # Initially at the origin, position given as a coordinate
+camera_direction = np.array([[1], [0], [0]])  # Initially looking parallel to the positive x-axis, direction is given as a unit vector
 
-print(Cross(a, b))
-print(np.cross(a, b))
+
+#Testing
+
