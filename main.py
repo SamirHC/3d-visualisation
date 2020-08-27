@@ -101,12 +101,39 @@ class Triangle:
     def normal(self):
         return np.cross(self.v2-self.v1, self.v3-self.v1)
 
+    def map_vertices(self):
+        self.mapped_vertices = []
+        for vertex in self.vertices:
+            line_to_camera = [vertex, camera_position - vertex]
+            intersection_point = intersectionOfLineAndPlane(line_to_camera, camera_screen)
+            mapped_point = ((np.dot(inverseAxisMatrix, intersection_point - camera_position)+shift)*scale)[:-1]
+            self.mapped_vertices.append(mapped_point)
+        return self.mapped_vertices
+
+    def draw(self):
+        self.map_vertices()
+        p.draw.polygon(display, shape.color, np.rint(self.mapped_vertices))
+
 class Line:
     def __init__(self, v1, v2, color=WHITE):
         self.v1 = v1
         self.v2 = v2
         self.vertices = np.array([v1, v2])
         self.color = color
+
+    def map_vertices(self):
+        self.mapped_vertices = []
+        for vertex in self.vertices:
+            line_to_camera = [vertex, camera_position - vertex]
+            intersection_point = intersectionOfLineAndPlane(line_to_camera, camera_screen)
+            mapped_point = ((np.dot(inverseAxisMatrix, intersection_point - camera_position)+shift)*scale)[:-1]
+            self.mapped_vertices.append(mapped_point)
+        return self.mapped_vertices
+
+    def draw(self):
+        if len(self.map_vertices()) == 2:
+            if np.linalg.norm(self.mapped_vertices[0]) < display_width**3 and np.linalg.norm(self.mapped_vertices[1]) < display_width**3:  # Coordinates can't be too exttreme
+                p.draw.line(display, self.color, *np.rint(self.mapped_vertices))
 
 #Testing
 shapes = []
@@ -116,12 +143,21 @@ for i in range(-10, 10, 2):
         line_y = Line(np.array([i, -10, j]), np.array([i, 10, j]), GREEN)
         line_z = Line(np.array([i, j, -10]), np.array([i, j, 10]), BLUE)
         shapes += [line_x, line_y, line_z]
-tri1 = Triangle(np.array([1, 0, 5]), np.array([0, 0, 5]), np.array([0, 1, 5]))
-tri2 = Triangle(np.array([1, 0, 5]), np.array([1, 1, 5]), np.array([0, 1, 5]))
+##tri1 = Triangle(np.array([1, 0, 5]), np.array([0, 0, 5]), np.array([0, 1, 5]))
+##tri2 = Triangle(np.array([1, 0, 5]), np.array([1, 1, 5]), np.array([0, 1, 5]))
+##shapes.append(tri1)
+##shapes.append(tri2)
+##tri3 = Triangle(np.array([1, 0, 10]), np.array([0, 0, 10]), np.array([0, 1, 10]), GRAY)
+##tri4 = Triangle(np.array([1, 0, 10]), np.array([1, 1, 10]), np.array([0, 1, 10]), GRAY)
+##shapes.append(tri3)
+##shapes.append(tri4)
+#
+tri1 = Triangle(np.array([1, 0, -5]), np.array([0, 0, -5]), np.array([0, 1, -5]))
+tri2 = Triangle(np.array([1, 0, -5]), np.array([1, 1, -5]), np.array([0, 1, -5]))
 shapes.append(tri1)
 shapes.append(tri2)
-tri3 = Triangle(np.array([1, 0, 10]), np.array([0, 0, 10]), np.array([0, 1, 10]), GRAY)
-tri4 = Triangle(np.array([1, 0, 10]), np.array([1, 1, 10]), np.array([0, 1, 10]), GRAY)
+tri3 = Triangle(np.array([1, 0, -10]), np.array([0, 0, -10]), np.array([0, 1, -10]), GRAY)
+tri4 = Triangle(np.array([1, 0, -10]), np.array([1, 1, -10]), np.array([0, 1, -10]), GRAY)
 shapes.append(tri3)
 shapes.append(tri4)
 
@@ -133,17 +169,8 @@ while True:
     axisMatrix = getAxisMatrix(alpha, beta, gamma)
     inverseAxisMatrix = np.linalg.inv(axisMatrix)
     for shape in shapes:
-        mapped_vertices = []
-        for vertex in shape.vertices:
-            line_to_camera = [vertex, camera_position - vertex]
-            intersection_point = intersectionOfLineAndPlane(line_to_camera, camera_screen)
-            mapped_point = ((np.dot(inverseAxisMatrix, intersection_point - camera_position)+shift)*scale)[:-1]
-            mapped_vertices.append(mapped_point)
-        if len(mapped_vertices) == 2:
-            if np.linalg.norm(mapped_vertices[0]) < display_width**2 and np.linalg.norm(mapped_vertices[1]) < display_width**2:
-                p.draw.line(display, shape.color, *np.rint(mapped_vertices))
-        else:
-            p.draw.polygon(display, shape.color, np.rint(mapped_vertices))
+        ####
+        shape.draw()
     p.transform.flip(display, False, True)
     p.display.update()
     # Animate
