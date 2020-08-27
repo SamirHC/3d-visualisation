@@ -18,7 +18,7 @@ WHITE = (255, 255, 255)
 
 # Initial Camera Settings
 alpha = 0  # Angle in the xy plane
-beta = 0 # Angle in the xz plane
+beta = -math.pi/2 # Angle in the xz plane
 gamma = 0  # Angle in the yz plane
 x0 = 0  # x coordinate of camera
 y0 = 0  # y coordinate of camera
@@ -58,7 +58,7 @@ def getAxisMatrix(ALPHA, BETA, GAMMA):
         [0, 1, 0],
         [math.sin(BETA), 0, math.cos(BETA)]
         ])  # Matrix required to rotate a plane by ALPHA in the xz plane
-    gamma-rotation_matric = np.array([
+    gamma_rotation_matrix = np.array([
         [1, 0, 0],
         [0, math.cos(GAMMA), -math.sin(GAMMA)],
         [0, math.sin(GAMMA), math.cos(GAMMA)]
@@ -102,7 +102,7 @@ triangles.append(tri4)
 
 print(camera_direction)
 
-"""
+
 #Rendering
 while True:
     display.fill(BLACK)
@@ -120,4 +120,3 @@ while True:
         p.draw.polygon(display, WHITE, intersections)
 
     p.display.update()
-"""
