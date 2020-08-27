@@ -143,23 +143,22 @@ for i in range(-10, 10, 2):
         line_y = Line(np.array([i, -10, j]), np.array([i, 10, j]), GREEN)
         line_z = Line(np.array([i, j, -10]), np.array([i, j, 10]), BLUE)
         shapes += [line_x, line_y, line_z]
-##tri1 = Triangle(np.array([1, 0, 5]), np.array([0, 0, 5]), np.array([0, 1, 5]))
-##tri2 = Triangle(np.array([1, 0, 5]), np.array([1, 1, 5]), np.array([0, 1, 5]))
-##shapes.append(tri1)
-##shapes.append(tri2)
-##tri3 = Triangle(np.array([1, 0, 10]), np.array([0, 0, 10]), np.array([0, 1, 10]), GRAY)
-##tri4 = Triangle(np.array([1, 0, 10]), np.array([1, 1, 10]), np.array([0, 1, 10]), GRAY)
-##shapes.append(tri3)
-##shapes.append(tri4)
-#
-tri1 = Triangle(np.array([1, 0, -5]), np.array([0, 0, -5]), np.array([0, 1, -5]))
-tri2 = Triangle(np.array([1, 0, -5]), np.array([1, 1, -5]), np.array([0, 1, -5]))
+tri1 = Triangle(np.array([1, 0, 5]), np.array([0, 0, 5]), np.array([0, 1, 5]))
+tri2 = Triangle(np.array([1, 0, 5]), np.array([1, 1, 5]), np.array([0, 1, 5]))
 shapes.append(tri1)
 shapes.append(tri2)
-tri3 = Triangle(np.array([1, 0, -10]), np.array([0, 0, -10]), np.array([0, 1, -10]), GRAY)
-tri4 = Triangle(np.array([1, 0, -10]), np.array([1, 1, -10]), np.array([0, 1, -10]), GRAY)
+tri3 = Triangle(np.array([1, 0, 10]), np.array([0, 0, 10]), np.array([0, 1, 10]), GRAY)
+tri4 = Triangle(np.array([1, 0, 10]), np.array([1, 1, 10]), np.array([0, 1, 10]), GRAY)
 shapes.append(tri3)
 shapes.append(tri4)
+##tri1 = Triangle(np.array([1, 0, -5]), np.array([0, 0, -5]), np.array([0, 1, -5]))
+##tri2 = Triangle(np.array([1, 0, -5]), np.array([1, 1, -5]), np.array([0, 1, -5]))
+##shapes.append(tri1)
+##shapes.append(tri2)
+##tri3 = Triangle(np.array([1, 0, -10]), np.array([0, 0, -10]), np.array([0, 1, -10]), GRAY)
+##tri4 = Triangle(np.array([1, 0, -10]), np.array([1, 1, -10]), np.array([0, 1, -10]), GRAY)
+##shapes.append(tri3)
+##shapes.append(tri4)
 
 # Run
 while True:
@@ -169,11 +168,10 @@ while True:
     axisMatrix = getAxisMatrix(alpha, beta, gamma)
     inverseAxisMatrix = np.linalg.inv(axisMatrix)
     for shape in shapes:
-        ####
         shape.draw()
-    p.transform.flip(display, False, True)
+    display.blit(p.transform.flip(display, False, True), (0, 0))
     p.display.update()
     # Animate
-    t = time.time()
-    camera_position = np.array([10*math.sin(t), 0, 10 + 10*math.cos(t)])
-    camera_direction = findCameraDirection(alpha, beta, gamma)
+    #t = time.time()
+    #camera_position = np.array([10*math.sin(t), 0, 10 + 10*math.cos(t)])
+    #camera_direction = findCameraDirection(alpha, beta, gamma)
