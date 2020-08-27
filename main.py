@@ -8,7 +8,6 @@ p.init()
 # Display Settings
 display_width = 800
 display_height = 600
-display_size = np.array([display_width, display_height, 0])
 display = p.display.set_mode((display_width, display_height))
 CAPTION = "3d"
 p.display.set_caption(CAPTION)
@@ -16,6 +15,10 @@ p.display.set_caption(CAPTION)
 # Colors
 BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
+GRAY = (200, 200, 200)
+RED = (255, 0, 0)
+GREEN = (0, 255, 0)
+BLUE = (0, 0, 255)
 
 # Initial Camera Settings
 alpha = 0  # Angle in the xy plane
@@ -42,7 +45,7 @@ def intersectionOfLineAndPlane(lineData, planeData):  # Returns the point (if an
     n = planeData[1]
     u = lineData[1]
     if np.dot(n, u) == 0:
-        return np.array([nan, nan, nan])
+        return np.array([0, 0, 0])
     w = P0 - V0
     s = -np.dot(n, w) / np.dot(n, u)  # Calculates the value of the parametric variable
     return P0 + s*u
@@ -83,6 +86,7 @@ camera_position = np.array([x0, y0, z0])  # Initially at the origin, position gi
 camera_direction = findCameraDirection(alpha, beta, gamma)  # Direction is given as a unit vector np.array and is the normal to the camera_screen
 camera_screen = [camera_position + camera_direction, camera_direction]  # Represents the plane the display is in [point, normal unit vector]
 shift = np.array([0.5, 0.5, 0])
+scale = np.array([display_width, display_width, 0])
 
 #Objects
 class Triangle:
@@ -97,26 +101,45 @@ class Triangle:
     def normal(self):
         return np.cross(self.v2-self.v1, self.v3-self.v1)
 
-#Testing
-triangles = []
-tri1 = Triangle(np.array([1, 0, 20]), np.array([0, 0, 20]), np.array([0, 1, 20]))
-tri2 = Triangle(np.array([1, 0, 20]), np.array([1, 1, 20]), np.array([0, 1, 20]))
-triangles.append(tri1)
-triangles.append(tri2)
+class Line:
+    def __init__(self, v1, v2, color=WHITE):
+        self.v1 = v1
+        self.v2 = v2
+        self.vertices = np.array([v1, v2])
+        self.color = color
 
+#Testing
+shapes = []
+for i in range(-10, 10):
+    for j in range(-10, 10):
+        line_x = Line(np.array([-10, i, j]), np.array([10, i, j]), RED)
+        line_y = Line(np.array([i, -10, j]), np.array([i, 10, j]), GREEN)
+        line_z = Line(np.array([i, j, -10]), np.array([i, j, 10]), BLUE)
+        shapes += [line_x, line_y, line_z]
+tri1 = Triangle(np.array([1, 0, 5]), np.array([0, 0, 5]), np.array([0, 1, 5]))
+tri2 = Triangle(np.array([1, 0, 5]), np.array([1, 1, 5]), np.array([0, 1, 5]))
+shapes.append(tri1)
+shapes.append(tri2)
+tri3 = Triangle(np.array([1, 0, 10]), np.array([0, 0, 10]), np.array([0, 1, 10]), GRAY)
+tri4 = Triangle(np.array([1, 0, 10]), np.array([1, 1, 10]), np.array([0, 1, 10]), GRAY)
+shapes.append(tri3)
+shapes.append(tri4)
 
 #Rendering
-while True:
-    display.fill(BLACK)
-    camera_screen = [camera_position + camera_direction, camera_direction]  # Represents the plane the display is in.
+#while True:
+display.fill(BLACK)
+camera_screen = [camera_position + camera_direction, camera_direction]  # Represents the plane the display is in.
 
-    for triangle in triangles:
-        display_positions = []
-        for vertex in triangle.vertices:
-            line_to_camera = [vertex, camera_position - vertex]
-            intersection_point = intersectionOfLineAndPlane(line_to_camera, camera_screen)
-            mapped_point = ((np.dot(inverseAxisMatrix, intersection_point - camera_position)+shift)*display_size)[:-1]
-            display_positions.append(mapped_point)
-        p.draw.polygon(display, triangle.color, display_positions)
+for shape in shapes:
+    mapped_vertices = []
+    for vertex in shape.vertices:
+        line_to_camera = [vertex, camera_position - vertex]
+        intersection_point = intersectionOfLineAndPlane(line_to_camera, camera_screen)
+        mapped_point = ((np.dot(inverseAxisMatrix, intersection_point - camera_position)+shift)*scale)[:-1]
+        mapped_vertices.append(mapped_point)
+    if len(mapped_vertices) == 2:
+        p.draw.line(display, shape.color, *mapped_vertices)
+    else:
+        p.draw.polygon(display, shape.color, mapped_vertices)
 
-    p.display.update()
+p.display.update()
