@@ -33,15 +33,26 @@ def intersectionOfLineAndPlane(lineData, planeData):  # Returns the point (if an
     n = planeData[1]
     u = lineData[1]
     if np.dot(n, u) == 0:
-        return np.array([256, 256, 256])
+        return np.array([nan, nan, nan])
     w = P0 - V0
     s = -np.dot(n, w) / np.dot(n, u)  # Calculates the value of the parametric variable
     return P0 + s*u
     
 # Camera
-camera_position = np.array([0, 0, 0])  # Initially at the origin, position given as a coordinate
-camera_direction = np.array([1, 0, 0])  # Initially looking parallel to the positive x-axis, direction is given as a unit vector
-camera_screen = [camera_position + camera_direction, camera_direction]  # Represents the plane the display is in.
+def findCameraDirection(ALPHA, BETA, GAMMA):
+    i = math.sin(ALPHA)*math.sin(GAMMA) - math.cos(ALPHA)*math.sin(BETA)*math.cos(GAMMA)
+    j = -math.cos(ALPHA)*math.sin(GAMMA) - math.sin(ALPHA)*math.sin(BETA)*math.cos(GAMMA)
+    k = math.cos(BETA)*math.cos(GAMMA)
+    return np.array([i, j, k])
+alpha = 0  # Angle in the xy plane
+beta = 0  # Angle in the xz plane
+gamma = 0  # Angle in the yz plane
+x0 = 0  # x coordinate of camera
+y0 = 0  # y coordinate of camera
+z0 = 0  # z coordinate of camera
+camera_position = np.array([x0, y0, z0])  # Initially at the origin, position given as a coordinate np.array
+camera_direction = findCameraDirection(alpha, beta, gamma)  # Initially looking parallel to the positive x-axis, direction is given as a unit vector np.array
+camera_screen = [camera_position + camera_direction, camera_direction]  # Represents the plane the display is in [point, normal unit vector]
 #Objects
 class Triangle:
     def __init__(self, v1, v2, v3):  # Vertices of the triangle, (should be np.array of shape (3, 1))
@@ -64,6 +75,9 @@ triangles.append(tri2)
 triangles.append(tri3)
 triangles.append(tri4)
 
+print(camera_direction)
+
+"""
 while True:
     display.fill(BLACK)
     camera_screen = [camera_position + camera_direction, camera_direction]  # Represents the plane the display is in.
@@ -81,6 +95,4 @@ while True:
         p.draw.polygon(display, WHITE, intersections)
 
     p.display.update()
-    camera_position = np.array([math.sin(time.time()), math.sin(0.5*time.time()), math.sin(0.25*time.time())])
-    camera_direction = np.array([math.sin(time.time()), 0.25*math.sin(0.5*time.time()), 0.25*math.sin(0.25*time.time())])
-    
+"""
