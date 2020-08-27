@@ -147,18 +147,6 @@ tri1 = Triangle(np.array([1, 0, 5]), np.array([0, 0, 5]), np.array([0, 1, 5]))
 tri2 = Triangle(np.array([1, 0, 5]), np.array([1, 1, 5]), np.array([0, 1, 5]))
 shapes.append(tri1)
 shapes.append(tri2)
-tri3 = Triangle(np.array([1, 0, 10]), np.array([0, 0, 10]), np.array([0, 1, 10]), GRAY)
-tri4 = Triangle(np.array([1, 0, 10]), np.array([1, 1, 10]), np.array([0, 1, 10]), GRAY)
-shapes.append(tri3)
-shapes.append(tri4)
-##tri1 = Triangle(np.array([1, 0, -5]), np.array([0, 0, -5]), np.array([0, 1, -5]))
-##tri2 = Triangle(np.array([1, 0, -5]), np.array([1, 1, -5]), np.array([0, 1, -5]))
-##shapes.append(tri1)
-##shapes.append(tri2)
-##tri3 = Triangle(np.array([1, 0, -10]), np.array([0, 0, -10]), np.array([0, 1, -10]), GRAY)
-##tri4 = Triangle(np.array([1, 0, -10]), np.array([1, 1, -10]), np.array([0, 1, -10]), GRAY)
-##shapes.append(tri3)
-##shapes.append(tri4)
 
 # Run
 while True:
@@ -172,6 +160,7 @@ while True:
     display.blit(p.transform.flip(display, False, True), (0, 0))
     p.display.update()
     # Animate
-    #t = time.time()
-    #camera_position = np.array([10*math.sin(t), 0, 10 + 10*math.cos(t)])
-    #camera_direction = findCameraDirection(alpha, beta, gamma)
+    t = time.time()
+    beta = -t
+    camera_position = np.array([5*math.sin(t), 0, 5 + 5*math.cos(t)])
+    camera_direction = findCameraDirection(alpha, beta, gamma)
