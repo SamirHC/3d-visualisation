@@ -8,6 +8,7 @@ p.init()
 # Display Settings
 display_width = 800
 display_height = 600
+display_size = np.array([display_width, display_height, 0])
 display = p.display.set_mode((display_width, display_height))
 CAPTION = "3d"
 p.display.set_caption(CAPTION)
@@ -18,7 +19,7 @@ WHITE = (255, 255, 255)
 
 # Initial Camera Settings
 alpha = 0  # Angle in the xy plane
-beta = -math.pi/2 # Angle in the xz plane
+beta = 0# Angle in the xz plane
 gamma = 0  # Angle in the yz plane
 x0 = 0  # x coordinate of camera
 y0 = 0  # y coordinate of camera
@@ -63,7 +64,8 @@ def getAxisMatrix(ALPHA, BETA, GAMMA):
         [0, math.cos(GAMMA), -math.sin(GAMMA)],
         [0, math.sin(GAMMA), math.cos(GAMMA)]
         ])  # Matrix required to rotate a plane by ALPHA in the yz plane
-    axisMatrix = np.dot(np.dot(alpha_rotation_matrix, beta_rotation_matrix), gamma_rotation_matrix)
+    resultant_matrix = np.dot(np.dot(alpha_rotation_matrix, beta_rotation_matrix), gamma_rotation_matrix)
+    return resultant_matrix
         
 def findCameraDirection(ALPHA, BETA, GAMMA):
     i = math.sin(ALPHA)*math.sin(GAMMA) - math.cos(ALPHA)*math.sin(BETA)*math.cos(GAMMA)
@@ -72,18 +74,24 @@ def findCameraDirection(ALPHA, BETA, GAMMA):
     return np.array([i, j, k])
 
 def getInverseAxisMatrix(ALPHA, BETA, GAMMA):
-    inverseMatrix = np.linalg.inv(getAxisMatrix(ALPHA, BETA, GAMMA))
-    return inverseMatrix
-        
+    resultant_matrix = np.linalg.inv(getAxisMatrix(ALPHA, BETA, GAMMA))
+    return resultant_matrix
+
+axisMatrix = getAxisMatrix(alpha, beta, gamma)
+inverseAxisMatrix = np.linalg.inv(axisMatrix)
 camera_position = np.array([x0, y0, z0])  # Initially at the origin, position given as a coordinate np.array
-camera_direction = findCameraDirection(alpha, beta, gamma)  # Initially looking parallel to the positive x-axis, direction is given as a unit vector np.array
+camera_direction = findCameraDirection(alpha, beta, gamma)  # Direction is given as a unit vector np.array and is the normal to the camera_screen
 camera_screen = [camera_position + camera_direction, camera_direction]  # Represents the plane the display is in [point, normal unit vector]
+shift = np.array([0.5, 0.5, 0])
+
 #Objects
 class Triangle:
-    def __init__(self, v1, v2, v3):  # Vertices of the triangle, (should be np.array of shape (3, 1))
+    def __init__(self, v1, v2, v3, color=WHITE):  # Vertices of the triangle, (should be np.array of shape (3, 1))
         self.v1 = v1
         self.v2 = v2
         self.v3 = v3
+        self.vertices = np.array([v1, v2, v3])
+        self.color = color
 
     @property
     def normal(self):
@@ -91,16 +99,10 @@ class Triangle:
 
 #Testing
 triangles = []
-tri1 = Triangle(np.array([4, 2, 2]), np.array([4, 2, 3]), np.array([4, 3, 2]))
-tri2 = Triangle(np.array([4, 3, 3]), np.array([4, 2, 3]), np.array([4, 3, 2]))
-tri3 = Triangle(np.array([4, 2, 2]), np.array([5, 2, 2]), np.array([4, 3, 2]))
-tri4 = Triangle(np.array([5, 3, 2]), np.array([5, 2, 2]), np.array([4, 3, 2]))
+tri1 = Triangle(np.array([1, 0, 20]), np.array([0, 0, 20]), np.array([0, 1, 20]))
+tri2 = Triangle(np.array([1, 0, 20]), np.array([1, 1, 20]), np.array([0, 1, 20]))
 triangles.append(tri1)
 triangles.append(tri2)
-triangles.append(tri3)
-triangles.append(tri4)
-
-print(camera_direction)
 
 
 #Rendering
@@ -109,14 +111,12 @@ while True:
     camera_screen = [camera_position + camera_direction, camera_direction]  # Represents the plane the display is in.
 
     for triangle in triangles:
-        vertices = [triangle.v1, triangle.v2, triangle.v3]
-        intersections = []
-        for vertex in vertices:
+        display_positions = []
+        for vertex in triangle.vertices:
             line_to_camera = [vertex, camera_position - vertex]
-            intersection = intersectionOfLineAndPlane(line_to_camera, camera_screen)
-            mapped_to = (intersection - camera_position - camera_direction)*800
-            intersections.append((mapped_to[1], mapped_to[2]))
-        #print(intersections)
-        p.draw.polygon(display, WHITE, intersections)
+            intersection_point = intersectionOfLineAndPlane(line_to_camera, camera_screen)
+            mapped_point = ((np.dot(inverseAxisMatrix, intersection_point - camera_position)+shift)*display_size)[:-1]
+            display_positions.append(mapped_point)
+        p.draw.polygon(display, triangle.color, display_positions)
 
     p.display.update()
