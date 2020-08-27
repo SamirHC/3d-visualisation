@@ -1,6 +1,7 @@
 import pygame as p
 import math
 import numpy as np
+import time
 
 p.init()
 
@@ -11,24 +12,11 @@ display = p.display.set_mode((display_width, display_height))
 CAPTION = "3d"
 p.display.set_caption(CAPTION)
 
-# Matrix functions
-def Dot(matrix1, matrix2):  # Calculates the dot product of two matrices
-    matrix1_rows, matrix1_columns = np.shape(matrix1)
-    matrix2_rows, matrix2_columns = np.shape(matrix2)
-    if matrix1_columns != matrix2_rows:
-        raise ValueError("You cannot dot product matrices where the first matrix column is of different dimension to the second matrix row")
-    new_matrix = np.zeros((matrix1_rows, matrix2_columns))  # Creates an empty new_matrix which we will store the result in
-    for i in range(matrix1_rows):
-        for j in range(matrix2_columns):
-            new_matrix[i, j] = np.sum(matrix1[i]*matrix2[:, j])
-    return new_matrix
+# Colors
+BLACK = (0, 0, 0)
+WHITE = (255, 255, 255)
 
-def Cross(matrix1, matrix2):  # Calculates the cross product of two (3, 1) matrices
-    ax, ay, az = matrix1
-    bx, by, bz = matrix2
-    cx, cy, cz = ay*bz - az*by, az*bx - ax*bz, ax*by - ay*bx
-    return np.array([cx, cy, cz])
-
+# Vectors
 def unitVector(vector):
     return vector / np.linalg.norm(vector)
 
@@ -67,16 +55,32 @@ class Triangle:
 
 #Testing
 triangles = []
-tri1 = Triangle(np.array([1, 2, 3]), np.array([8, 2, 1]), np.array([4, 1, 2]))
+tri1 = Triangle(np.array([4, 2, 2]), np.array([4, 2, 3]), np.array([4, 3, 2]))
+tri2 = Triangle(np.array([4, 3, 3]), np.array([4, 2, 3]), np.array([4, 3, 2]))
+tri3 = Triangle(np.array([4, 2, 2]), np.array([5, 2, 2]), np.array([4, 3, 2]))
+tri4 = Triangle(np.array([5, 3, 2]), np.array([5, 2, 2]), np.array([4, 3, 2]))
 triangles.append(tri1)
+triangles.append(tri2)
+triangles.append(tri3)
+triangles.append(tri4)
 
-#Rendering
-for triangle in triangles:
-    vertices = [triangle.v1, triangle.v2, triangle.v3]
-    intersections = []
-    for vertex in vertices:
-        line_to_camera = [vertex, camera_position - vertex]
-        intersection = intersectionOfLineAndPlane(line_to_camera, camera_screen)
-        print(intersection)
+while True:
+    display.fill(BLACK)
+    camera_screen = [camera_position + camera_direction, camera_direction]  # Represents the plane the display is in.
 
+    #Rendering
+    for triangle in triangles:
+        vertices = [triangle.v1, triangle.v2, triangle.v3]
+        intersections = []
+        for vertex in vertices:
+            line_to_camera = [vertex, camera_position - vertex]
+            intersection = intersectionOfLineAndPlane(line_to_camera, camera_screen)
+            mapped_to = (intersection - camera_position - camera_direction)*800
+            intersections.append((mapped_to[1], mapped_to[2]))
+        #print(intersections)
+        p.draw.polygon(display, WHITE, intersections)
 
+    p.display.update()
+    camera_position = np.array([math.sin(time.time()), math.sin(0.5*time.time()), math.sin(0.25*time.time())])
+    camera_direction = np.array([math.sin(time.time()), 0.25*math.sin(0.5*time.time()), 0.25*math.sin(0.25*time.time())])
+    
