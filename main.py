@@ -12,6 +12,10 @@ display = p.display.set_mode((display_width, display_height))
 CAPTION = "3d"
 p.display.set_caption(CAPTION)
 
+#Clock
+clock = p.time.Clock()
+FPS = 120
+
 # Colors
 BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
@@ -149,7 +153,8 @@ shapes.append(tri1)
 shapes.append(tri2)
 
 # Run
-while True:
+running = True
+while running:
     # Rendering
     display.fill(BLACK)
     camera_screen = [camera_position + camera_direction, camera_direction]  # Represents the plane the display is in.
@@ -164,3 +169,9 @@ while True:
     beta = -t
     camera_position = np.array([5*math.sin(t), 0, 5 + 5*math.cos(t)])
     camera_direction = findCameraDirection(alpha, beta, gamma)
+    # Misc
+    for event in p.event.get():        
+        if event.type == p.QUIT:
+            running = False   
+    clock.tick(FPS)
+exit()
