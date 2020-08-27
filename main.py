@@ -174,4 +174,4 @@ while running:
         if event.type == p.QUIT:
             running = False   
     clock.tick(FPS)
-exit()
+
