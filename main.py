@@ -80,8 +80,8 @@ def getInverseAxisMatrix(ALPHA, BETA, GAMMA):
     resultant_matrix = np.linalg.inv(getAxisMatrix(ALPHA, BETA, GAMMA))
     return resultant_matrix
 
-axisMatrix = getAxisMatrix(alpha, beta, gamma)
-inverseAxisMatrix = np.linalg.inv(axisMatrix)
+axisMatrix = getAxisMatrix(alpha, beta, gamma)  # The orientation of the xyz axis relative to the camera
+inverseAxisMatrix = np.linalg.inv(axisMatrix)  # The inverse of the above,  used in order to map back to the display
 camera_position = np.array([x0, y0, z0])  # Initially at the origin, position given as a coordinate np.array
 camera_direction = findCameraDirection(alpha, beta, gamma)  # Direction is given as a unit vector np.array and is the normal to the camera_screen
 camera_screen = [camera_position + camera_direction, camera_direction]  # Represents the plane the display is in [point, normal unit vector]
@@ -110,8 +110,8 @@ class Line:
 
 #Testing
 shapes = []
-for i in range(-10, 10):
-    for j in range(-10, 10):
+for i in range(-10, 10, 2):
+    for j in range(-10, 10, 2):
         line_x = Line(np.array([-10, i, j]), np.array([10, i, j]), RED)
         line_y = Line(np.array([i, -10, j]), np.array([i, 10, j]), GREEN)
         line_z = Line(np.array([i, j, -10]), np.array([i, j, 10]), BLUE)
@@ -125,21 +125,27 @@ tri4 = Triangle(np.array([1, 0, 10]), np.array([1, 1, 10]), np.array([0, 1, 10])
 shapes.append(tri3)
 shapes.append(tri4)
 
-#Rendering
-#while True:
-display.fill(BLACK)
-camera_screen = [camera_position + camera_direction, camera_direction]  # Represents the plane the display is in.
-
-for shape in shapes:
-    mapped_vertices = []
-    for vertex in shape.vertices:
-        line_to_camera = [vertex, camera_position - vertex]
-        intersection_point = intersectionOfLineAndPlane(line_to_camera, camera_screen)
-        mapped_point = ((np.dot(inverseAxisMatrix, intersection_point - camera_position)+shift)*scale)[:-1]
-        mapped_vertices.append(mapped_point)
-    if len(mapped_vertices) == 2:
-        p.draw.line(display, shape.color, *mapped_vertices)
-    else:
-        p.draw.polygon(display, shape.color, mapped_vertices)
-
-p.display.update()
+# Run
+while True:
+    # Rendering
+    display.fill(BLACK)
+    camera_screen = [camera_position + camera_direction, camera_direction]  # Represents the plane the display is in.
+    axisMatrix = getAxisMatrix(alpha, beta, gamma)
+    inverseAxisMatrix = np.linalg.inv(axisMatrix)
+    for shape in shapes:
+        mapped_vertices = []
+        for vertex in shape.vertices:
+            line_to_camera = [vertex, camera_position - vertex]
+            intersection_point = intersectionOfLineAndPlane(line_to_camera, camera_screen)
+            mapped_point = ((np.dot(inverseAxisMatrix, intersection_point - camera_position)+shift)*scale)[:-1]
+            mapped_vertices.append(mapped_point)
+        if len(mapped_vertices) == 2:
+            p.draw.line(display, shape.color, *mapped_vertices)
+        else:
+            p.draw.polygon(display, shape.color, mapped_vertices)
+    p.transform.flip(display, False, True)
+    p.display.update()
+    # Animate
+    t = time.time()
+    camera_position = np.array([10*math.sin(t), 0, 10 + 10*math.cos(t)])
+    camera_direction = findCameraDirection(alpha, beta, gamma)
