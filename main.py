@@ -140,9 +140,10 @@ while True:
             mapped_point = ((np.dot(inverseAxisMatrix, intersection_point - camera_position)+shift)*scale)[:-1]
             mapped_vertices.append(mapped_point)
         if len(mapped_vertices) == 2:
-            p.draw.line(display, shape.color, *mapped_vertices)
+            if np.linalg.norm(mapped_vertices[0]) < display_width**2 and np.linalg.norm(mapped_vertices[1]) < display_width**2:
+                p.draw.line(display, shape.color, *np.rint(mapped_vertices))
         else:
-            p.draw.polygon(display, shape.color, mapped_vertices)
+            p.draw.polygon(display, shape.color, np.rint(mapped_vertices))
     p.transform.flip(display, False, True)
     p.display.update()
     # Animate
