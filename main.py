@@ -151,7 +151,26 @@ tri1 = Triangle(np.array([1, 0, 5]), np.array([0, 0, 5]), np.array([0, 1, 5]))
 tri2 = Triangle(np.array([1, 0, 5]), np.array([1, 1, 5]), np.array([0, 1, 5]))
 shapes.append(tri1)
 shapes.append(tri2)
-
+tri1 = Triangle(np.array([1, 0, 5]), np.array([0, 0, 5]), np.array([0, 1, 5]))
+tri2 = Triangle(np.array([1, 0, 5]), np.array([1, 1, 5]), np.array([0, 1, 5]))
+shapes.append(tri1)
+shapes.append(tri2)
+tri1 = Triangle(np.array([1, 0, 5]), np.array([0, 0, 5]), np.array([0, 1, 5]))
+tri2 = Triangle(np.array([1, 0, 5]), np.array([1, 1, 5]), np.array([0, 1, 5]))
+shapes.append(tri1)
+shapes.append(tri2)
+tri1 = Triangle(np.array([1, 0, 6]), np.array([0, 0, 6]), np.array([0, 1, 6]), GREEN)
+tri2 = Triangle(np.array([1, 0, 6]), np.array([1, 1, 6]), np.array([0, 1, 6]), GREEN)
+shapes.append(tri1)
+shapes.append(tri2)
+tri1 = Triangle(np.array([0, 0, 5]), np.array([0, 0, 6]), np.array([0, 1, 6]), GRAY)
+tri2 = Triangle(np.array([0, 1, 6]), np.array([0, 1, 5]), np.array([0, 0, 5]), GRAY)
+shapes.append(tri1)
+shapes.append(tri2)
+tri1 = Triangle(np.array([1, 0, 5]), np.array([1, 0, 6]), np.array([1, 1, 6]), RED)
+tri2 = Triangle(np.array([1, 1, 6]), np.array([1, 1, 5]), np.array([1, 0, 5]), RED)
+shapes.append(tri1)
+shapes.append(tri2)
 # Run
 running = True
 while running:
@@ -170,8 +189,8 @@ while running:
     camera_position = np.array([5*math.sin(t), 0, 5 + 5*math.cos(t)])
     camera_direction = findCameraDirection(alpha, beta, gamma)
     # Misc
-    for event in p.event.get():        
+    for event in p.event.get():
         if event.type == p.QUIT:
-            running = False   
+            running = False
     clock.tick(FPS)
 
