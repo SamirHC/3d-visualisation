@@ -93,82 +93,79 @@ shift = np.array([0.5, 0.5, 0])
 scale = np.array([display_width, display_width, 0])
 
 #Objects
-class Triangle:
-    def __init__(self, v1, v2, v3, color=WHITE):  # Vertices of the triangle, (should be np.array of shape (3, 1))
-        self.v1 = v1
-        self.v2 = v2
-        self.v3 = v3
-        self.vertices = np.array([v1, v2, v3])
+class Shape:
+    def __init__(self, vertices, color):
+        self.vertices = vertices
         self.color = color
+
+    def map_vertices(self):
+        self.mapped_vertices = []
+        for vertex in self.vertices:
+            line_to_camera = [vertex, camera_position - vertex]
+            intersection_point = intersectionOfLineAndPlane(line_to_camera, camera_screen)
+            mapped_point = ((np.dot(inverseAxisMatrix, intersection_point - camera_position)+shift)*scale)[:-1]
+            self.mapped_vertices.append(mapped_point)
+        return self.mapped_vertices
+
+    def draw(self):
+        for mapped_vertex in self.map_vertices():
+            if np.linalg.norm(mapped_vertex) > display_width**3:  # Coordinates can't be too exttreme
+                return
+        self.draw_method()
+
+    def draw_method(self):
+        p.draw.polygon(display, shape.color, np.rint(self.mapped_vertices))
+
+class Triangle(Shape):
+    def __init__(self, vertices, color=WHITE):  # Vertices of the triangle, (should be np.array of shape (3, 1))
+        super().__init__(vertices, color)
+        self.v1 = vertices[0]
+        self.v2 = vertices[1]
+        self.v3 = vertices[2]
 
     @property
     def normal(self):
         return np.cross(self.v2-self.v1, self.v3-self.v1)
 
-    def map_vertices(self):
-        self.mapped_vertices = []
-        for vertex in self.vertices:
-            line_to_camera = [vertex, camera_position - vertex]
-            intersection_point = intersectionOfLineAndPlane(line_to_camera, camera_screen)
-            mapped_point = ((np.dot(inverseAxisMatrix, intersection_point - camera_position)+shift)*scale)[:-1]
-            self.mapped_vertices.append(mapped_point)
-        return self.mapped_vertices
+class Line(Shape):
+    def __init__(self, vertices, color=WHITE):
+        super().__init__(vertices, color)
+        self.v1 = vertices[0]
+        self.v2 = vertices[1]
 
-    def draw(self):
-        self.map_vertices()
-        p.draw.polygon(display, shape.color, np.rint(self.mapped_vertices))
-
-class Line:
-    def __init__(self, v1, v2, color=WHITE):
-        self.v1 = v1
-        self.v2 = v2
-        self.vertices = np.array([v1, v2])
-        self.color = color
-
-    def map_vertices(self):
-        self.mapped_vertices = []
-        for vertex in self.vertices:
-            line_to_camera = [vertex, camera_position - vertex]
-            intersection_point = intersectionOfLineAndPlane(line_to_camera, camera_screen)
-            mapped_point = ((np.dot(inverseAxisMatrix, intersection_point - camera_position)+shift)*scale)[:-1]
-            self.mapped_vertices.append(mapped_point)
-        return self.mapped_vertices
-
-    def draw(self):
-        if len(self.map_vertices()) == 2:
-            if np.linalg.norm(self.mapped_vertices[0]) < display_width**3 and np.linalg.norm(self.mapped_vertices[1]) < display_width**3:  # Coordinates can't be too exttreme
-                p.draw.line(display, self.color, *np.rint(self.mapped_vertices))
+    def draw_method(self):
+        p.draw.line(display, self.color, *np.rint(self.mapped_vertices))
 
 #Testing
 shapes = []
 for i in range(-10, 10, 2):
     for j in range(-10, 10, 2):
-        line_x = Line(np.array([-10, i, j]), np.array([10, i, j]), RED)
-        line_y = Line(np.array([i, -10, j]), np.array([i, 10, j]), GREEN)
-        line_z = Line(np.array([i, j, -10]), np.array([i, j, 10]), BLUE)
+        line_x = Line(np.array([[-10, i, j], [10, i, j]]), RED)
+        line_y = Line(np.array([[i, -10, j], [i, 10, j]]), GREEN)
+        line_z = Line(np.array([[i, j, -10], [i, j, 10]]), BLUE)
         shapes += [line_x, line_y, line_z]
-tri1 = Triangle(np.array([1, 0, 5]), np.array([0, 0, 5]), np.array([0, 1, 5]))
-tri2 = Triangle(np.array([1, 0, 5]), np.array([1, 1, 5]), np.array([0, 1, 5]))
+tri1 = Triangle(np.array([[1, 0, 5], [0, 0, 5], [0, 1, 5]]))
+tri2 = Triangle(np.array([[1, 0, 5], [1, 1, 5], [0, 1, 5]]))
 shapes.append(tri1)
 shapes.append(tri2)
-tri1 = Triangle(np.array([1, 0, 5]), np.array([0, 0, 5]), np.array([0, 1, 5]))
-tri2 = Triangle(np.array([1, 0, 5]), np.array([1, 1, 5]), np.array([0, 1, 5]))
+tri1 = Triangle(np.array([[1, 0, 5], [0, 0, 5], [0, 1, 5]]))
+tri2 = Triangle(np.array([[1, 0, 5], [1, 1, 5], [0, 1, 5]]))
 shapes.append(tri1)
 shapes.append(tri2)
-tri1 = Triangle(np.array([1, 0, 5]), np.array([0, 0, 5]), np.array([0, 1, 5]))
-tri2 = Triangle(np.array([1, 0, 5]), np.array([1, 1, 5]), np.array([0, 1, 5]))
+tri1 = Triangle(np.array([[1, 0, 5], [0, 0, 5], [0, 1, 5]]))
+tri2 = Triangle(np.array([[1, 0, 5], [1, 1, 5], [0, 1, 5]]))
 shapes.append(tri1)
 shapes.append(tri2)
-tri1 = Triangle(np.array([1, 0, 6]), np.array([0, 0, 6]), np.array([0, 1, 6]), GREEN)
-tri2 = Triangle(np.array([1, 0, 6]), np.array([1, 1, 6]), np.array([0, 1, 6]), GREEN)
+tri1 = Triangle(np.array([[1, 0, 6], [0, 0, 6], [0, 1, 6]]), GREEN)
+tri2 = Triangle(np.array([[1, 0, 6], [1, 1, 6], [0, 1, 6]]), GREEN)
 shapes.append(tri1)
 shapes.append(tri2)
-tri1 = Triangle(np.array([0, 0, 5]), np.array([0, 0, 6]), np.array([0, 1, 6]), GRAY)
-tri2 = Triangle(np.array([0, 1, 6]), np.array([0, 1, 5]), np.array([0, 0, 5]), GRAY)
+tri1 = Triangle(np.array([[0, 0, 5], [0, 0, 6], [0, 1, 6]]), GRAY)
+tri2 = Triangle(np.array([[0, 1, 6], [0, 1, 5], [0, 0, 5]]), GRAY)
 shapes.append(tri1)
 shapes.append(tri2)
-tri1 = Triangle(np.array([1, 0, 5]), np.array([1, 0, 6]), np.array([1, 1, 6]), RED)
-tri2 = Triangle(np.array([1, 1, 6]), np.array([1, 1, 5]), np.array([1, 0, 5]), RED)
+tri1 = Triangle(np.array([[1, 0, 5], [1, 0, 6], [1, 1, 6]]), RED)
+tri2 = Triangle(np.array([[1, 1, 6], [1, 1, 5], [1, 0, 5]]), RED)
 shapes.append(tri1)
 shapes.append(tri2)
 # Run
