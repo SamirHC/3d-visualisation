@@ -116,18 +116,18 @@ class Shape:
 
     def draw(self):
         for mapped_vertex in self.map_vertices():
-            if np.linalg.norm(mapped_vertex) > display_width**3:  # Coordinates can't be too exttreme
+            if np.linalg.norm(mapped_vertex) > display_width**3:  # Coordinates can't be too extreme
                 return
         self.draw_method()
 
     def draw_method(self):
         p.draw.polygon(display, shape.color, np.rint(self.mapped_vertices))
 
-    def vector_to_camera(self):
+    def vector_from_camera(self):
         return self.center - camera_position
 
-    def distance_to_camera(self):
-        return np.linalg.norm(self.vector_to_camera())
+    def distance_from_camera(self):
+        return np.linalg.norm(self.vector_from_camera())
 
 class Triangle(Shape):
     def __init__(self, vertices, color=WHITE):  # Vertices of the triangle, (should be np.array of shape (3, 1))
@@ -190,7 +190,7 @@ while running:
     camera_screen = [camera_position + camera_direction, camera_direction]  # Represents the plane the display is in.
     axisMatrix = getAxisMatrix(alpha, beta, gamma)
     inverseAxisMatrix = np.linalg.inv(axisMatrix)
-    shapes.sort(key=lambda x: x.distance_to_camera(), reverse=True)
+    shapes.sort(key=lambda x: x.distance_from_camera(), reverse=True)
     for shape in shapes:
         shape.draw()
     display.blit(p.transform.flip(display, False, True), (0, 0))
