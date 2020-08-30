@@ -100,7 +100,7 @@ class Shape:
 
     @property
     def center(self):
-        return self.vertices.sum(axis=0)/3
+        return np.sum(self.vertices, axis=0)/3
 
     def map_point_to_screen(self, point):
             line_to_camera = [point, camera_position - point]
