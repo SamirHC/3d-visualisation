@@ -123,6 +123,9 @@ class Shape:
     def draw_method(self):
         p.draw.polygon(display, shape.color, np.rint(self.mapped_vertices))
 
+    def distance_to_camera(self):
+        return np.linalg.norm(self.center - camera_position)
+
 class Triangle(Shape):
     def __init__(self, vertices, color=WHITE):  # Vertices of the triangle, (should be np.array of shape (3, 1))
         super().__init__(vertices, color)
@@ -184,6 +187,7 @@ while running:
     camera_screen = [camera_position + camera_direction, camera_direction]  # Represents the plane the display is in.
     axisMatrix = getAxisMatrix(alpha, beta, gamma)
     inverseAxisMatrix = np.linalg.inv(axisMatrix)
+    shapes.sort(key=lambda x: x.distance_to_camera(), reverse=True)
     for shape in shapes:
         shape.draw()
     display.blit(p.transform.flip(display, False, True), (0, 0))
