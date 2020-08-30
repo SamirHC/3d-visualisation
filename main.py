@@ -100,13 +100,13 @@ class Shape:
 
     @property
     def center(self):
-        return np.sum(self.vertices, axis=0)/3
+        return np.sum(self.vertices, axis=0)/len(self.vertices)
 
     def map_point_to_screen(self, point):
-            line_to_camera = [point, camera_position - point]
-            intersection_point = intersectionOfLineAndPlane(line_to_camera, camera_screen)
-            mapped_point = ((np.dot(inverseAxisMatrix, intersection_point - camera_position)+shift)*scale)[:-1]
-            return mapped_point
+        line_to_camera = [point, camera_position - point]
+        intersection_point = intersectionOfLineAndPlane(line_to_camera, camera_screen)
+        mapped_point = ((np.dot(inverseAxisMatrix, intersection_point - camera_position)+shift)*scale)[:-1]
+        return mapped_point
 
     def map_vertices(self):
         self.mapped_vertices = []
@@ -117,6 +117,7 @@ class Shape:
     def draw(self):
         for mapped_vertex in self.map_vertices():
             if np.linalg.norm(mapped_vertex) > display_width**3:  # Coordinates can't be too extreme
+                print(mapped_vertex)
                 return
         self.draw_method()
 
@@ -154,36 +155,26 @@ class Line(Shape):
 
 #Testing
 shapes = []
-for i in range(-10, 10, 2):
-    for j in range(-10, 10, 2):
-        line_x = Line(np.array([[-10, i, j], [10, i, j]]), RED)
-        line_y = Line(np.array([[i, -10, j], [i, 10, j]]), GREEN)
-        line_z = Line(np.array([[i, j, -10], [i, j, 10]]), BLUE)
-        shapes += [line_x, line_y, line_z]
+for i in range(11):
+        line_x = Line(np.array([[0, 0, i], [10, 0, i]]), RED)
+        line_z = Line(np.array([[i, 0, 0], [i, 0, 10]]), BLUE)
+        shapes += [line_x, line_z]
 tri1 = Triangle(np.array([[1, 0, 5], [0, 0, 5], [0, 1, 5]]))
 tri2 = Triangle(np.array([[1, 0, 5], [1, 1, 5], [0, 1, 5]]))
 shapes.append(tri1)
 shapes.append(tri2)
-tri1 = Triangle(np.array([[1, 0, 5], [0, 0, 5], [0, 1, 5]]))
-tri2 = Triangle(np.array([[1, 0, 5], [1, 1, 5], [0, 1, 5]]))
-shapes.append(tri1)
-shapes.append(tri2)
-tri1 = Triangle(np.array([[1, 0, 5], [0, 0, 5], [0, 1, 5]]))
-tri2 = Triangle(np.array([[1, 0, 5], [1, 1, 5], [0, 1, 5]]))
-shapes.append(tri1)
-shapes.append(tri2)
-tri1 = Triangle(np.array([[1, 0, -6], [0, 0, -6], [0, 1, -6]]), GREEN)
+tri1 = Triangle(np.array([[1, 0, 6], [0, 0, 6], [0, 1, 6]]), GREEN)
 tri2 = Triangle(np.array([[1, 0, 6], [1, 1, 6], [0, 1, 6]]), GREEN)
 shapes.append(tri1)
 shapes.append(tri2)
-tri1 = Triangle(np.array([[0, 0, 5], [0, 0, 6], [0, 1, 6]]), GRAY)
-tri2 = Triangle(np.array([[0, 1, 6], [0, 1, 5], [0, 0, 5]]), GRAY)
-shapes.append(tri1)
-shapes.append(tri2)
-tri1 = Triangle(np.array([[1, 0, 5], [1, 0, 6], [1, 1, 6]]), RED)
-tri2 = Triangle(np.array([[1, 1, 6], [1, 1, 5], [1, 0, 5]]), RED)
-shapes.append(tri1)
-shapes.append(tri2)
+##tri1 = Triangle(np.array([[0, 0, 5], [0, 0, 6], [0, 1, 6]]), GRAY)
+##tri2 = Triangle(np.array([[0, 1, 6], [0, 1, 5], [0, 0, 5]]), GRAY)
+##shapes.append(tri1)
+##shapes.append(tri2)
+##tri1 = Triangle(np.array([[1, 0, 5], [1, 0, 6], [1, 1, 6]]), RED)
+##tri2 = Triangle(np.array([[1, 1, 6], [1, 1, 5], [1, 0, 5]]), RED)
+##shapes.append(tri1)
+##shapes.append(tri2)
 
 # Run
 running = True
@@ -197,12 +188,13 @@ while running:
     for shape in shapes:
         if shape.is_front():
             shape.draw()
-    display.blit(p.transform.flip(display, False, True), (0, 0))
+    display.blit(p.transform.flip(display, False, False), (0, 0))
     p.display.update()
     # Animate
     t = time.time()
     beta = -t
-    camera_position = np.array([5*math.sin(t), 0, 5 + 5*math.cos(t)])
+    gamma = -0.2
+    camera_position = np.array([5*math.sin(t), 1, 5 + 5*math.cos(t)])
     camera_direction = findCameraDirection(alpha, beta, gamma)
     # Misc
     for event in p.event.get():
