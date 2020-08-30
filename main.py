@@ -19,7 +19,7 @@ FPS = 120
 # Colors
 BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
-GRAY = (200, 200, 200)
+GRAY = (128, 128, 128)
 RED = (255, 0, 0)
 GREEN = (0, 255, 0)
 BLUE = (0, 0, 255)
@@ -98,6 +98,10 @@ class Shape:
         self.vertices = vertices
         self.color = color
 
+    @property
+    def center(self):
+        return self.vertices.sum(axis=0)/3
+
     def map_vertices(self):
         self.mapped_vertices = []
         for vertex in self.vertices:
@@ -168,6 +172,7 @@ tri1 = Triangle(np.array([[1, 0, 5], [1, 0, 6], [1, 1, 6]]), RED)
 tri2 = Triangle(np.array([[1, 1, 6], [1, 1, 5], [1, 0, 5]]), RED)
 shapes.append(tri1)
 shapes.append(tri2)
+
 # Run
 running = True
 while running:
