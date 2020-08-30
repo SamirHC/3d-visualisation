@@ -123,8 +123,11 @@ class Shape:
     def draw_method(self):
         p.draw.polygon(display, shape.color, np.rint(self.mapped_vertices))
 
+    def vector_to_camera(self):
+        return self.center - camera_position
+
     def distance_to_camera(self):
-        return np.linalg.norm(self.center - camera_position)
+        return np.linalg.norm(self.vector_to_camera())
 
 class Triangle(Shape):
     def __init__(self, vertices, color=WHITE):  # Vertices of the triangle, (should be np.array of shape (3, 1))
