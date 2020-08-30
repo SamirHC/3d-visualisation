@@ -102,13 +102,16 @@ class Shape:
     def center(self):
         return self.vertices.sum(axis=0)/3
 
+    def map_point_to_screen(self, point):
+            line_to_camera = [point, camera_position - point]
+            intersection_point = intersectionOfLineAndPlane(line_to_camera, camera_screen)
+            mapped_point = ((np.dot(inverseAxisMatrix, intersection_point - camera_position)+shift)*scale)[:-1]
+            return mapped_point
+
     def map_vertices(self):
         self.mapped_vertices = []
         for vertex in self.vertices:
-            line_to_camera = [vertex, camera_position - vertex]
-            intersection_point = intersectionOfLineAndPlane(line_to_camera, camera_screen)
-            mapped_point = ((np.dot(inverseAxisMatrix, intersection_point - camera_position)+shift)*scale)[:-1]
-            self.mapped_vertices.append(mapped_point)
+            self.mapped_vertices.append(self.map_point_to_screen(vertex))
         return self.mapped_vertices
 
     def draw(self):
