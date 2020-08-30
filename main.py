@@ -129,6 +129,9 @@ class Shape:
     def distance_from_camera(self):
         return np.linalg.norm(self.vector_from_camera())
 
+    def is_front(self):
+        return True if -np.sign(np.dot(self.vector_from_camera(), camera_direction)) == 1 else False
+
 class Triangle(Shape):
     def __init__(self, vertices, color=WHITE):  # Vertices of the triangle, (should be np.array of shape (3, 1))
         super().__init__(vertices, color)
@@ -169,7 +172,7 @@ tri1 = Triangle(np.array([[1, 0, 5], [0, 0, 5], [0, 1, 5]]))
 tri2 = Triangle(np.array([[1, 0, 5], [1, 1, 5], [0, 1, 5]]))
 shapes.append(tri1)
 shapes.append(tri2)
-tri1 = Triangle(np.array([[1, 0, 6], [0, 0, 6], [0, 1, 6]]), GREEN)
+tri1 = Triangle(np.array([[1, 0, -6], [0, 0, -6], [0, 1, -6]]), GREEN)
 tri2 = Triangle(np.array([[1, 0, 6], [1, 1, 6], [0, 1, 6]]), GREEN)
 shapes.append(tri1)
 shapes.append(tri2)
@@ -192,7 +195,8 @@ while running:
     inverseAxisMatrix = np.linalg.inv(axisMatrix)
     shapes.sort(key=lambda x: x.distance_from_camera(), reverse=True)
     for shape in shapes:
-        shape.draw()
+        if shape.is_front():
+            shape.draw()
     display.blit(p.transform.flip(display, False, True), (0, 0))
     p.display.update()
     # Animate
