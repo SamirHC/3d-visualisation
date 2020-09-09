@@ -11,6 +11,8 @@ display_height = 600
 display = p.display.set_mode((display_width, display_height))
 CAPTION = "3d"
 p.display.set_caption(CAPTION)
+p.event.set_grab(True)
+p.mouse.set_visible(False)
 
 #Clock
 clock = p.time.Clock()
@@ -25,12 +27,12 @@ GREEN = (0, 255, 0)
 BLUE = (0, 0, 255)
 
 # Initial Camera Settings
-alpha = 0  # Angle in the xy plane
-beta = 0# Angle in the xz plane
-gamma = 0  # Angle in the yz plane
-x0 = 0  # x coordinate of camera
-y0 = 0  # y coordinate of camera
-z0 = 0  # z coordinate of camera
+alpha = 0.  # Angle in the xy plane
+beta = 0.  # Angle in the xz plane
+gamma = 0.  # Angle in the yz plane
+x0 = 0.  # x coordinate of camera
+y0 = 0.  # y coordinate of camera
+z0 = 0.  # z coordinate of camera
 
 # Vector Calculations
 def unitVector(vector):
@@ -84,6 +86,21 @@ def getInverseAxisMatrix(ALPHA, BETA, GAMMA):
     resultant_matrix = np.linalg.inv(getAxisMatrix(ALPHA, BETA, GAMMA))
     return resultant_matrix
 
+def getAnglesFromMousePosition():
+    x, y = p.mouse.get_rel()
+    ALPHA = 0
+    BETA = x/display_width
+    GAMMA = y/display_height
+    return np.array([ALPHA, BETA, GAMMA])
+
+def getRelativeAxes(key):
+    axesDict = {}
+    axesDict["forward"] = -camera_direction
+    axesDict["forward"][1] = 0.
+    axesDict["side"] = np.cross(camera_direction, np.array([0, 1, 0]))
+    return axesDict[key]
+    
+
 axisMatrix = getAxisMatrix(alpha, beta, gamma)  # The orientation of the xyz axis relative to the camera
 inverseAxisMatrix = np.linalg.inv(axisMatrix)  # The inverse of the above,  used in order to map back to the display
 camera_position = np.array([x0, y0, z0])  # Initially at the origin, position given as a coordinate np.array
@@ -116,8 +133,7 @@ class Shape:
 
     def draw(self):
         for mapped_vertex in self.map_vertices():
-            if np.linalg.norm(mapped_vertex) > display_width**3:  # Coordinates can't be too extreme
-                print(mapped_vertex)
+            if np.linalg.norm(mapped_vertex) > display_width**2:  # Coordinates can't be too extreme
                 return
         self.draw_method()
 
@@ -128,10 +144,13 @@ class Shape:
         return self.center - camera_position
 
     def distance_from_camera(self):
-        return np.linalg.norm(self.vector_from_camera())
+        return np.linalg.norm(self.vector_from_camera())*self.facing()
+
+    def facing(self):
+        return -np.sign(np.dot(self.vector_from_camera(), camera_direction))
 
     def is_front(self):
-        return True if -np.sign(np.dot(self.vector_from_camera(), camera_direction)) == 1 else False
+        return True if self.facing() == 1 else False
 
 class Triangle(Shape):
     def __init__(self, vertices, color=WHITE):  # Vertices of the triangle, (should be np.array of shape (3, 1))
@@ -155,12 +174,14 @@ class Line(Shape):
 
 #Testing
 shapes = []
-for i in range(11):
-        line_x = Line(np.array([[0, 0, i], [10, 0, i]]), RED)
-        line_z = Line(np.array([[i, 0, 0], [i, 0, 10]]), BLUE)
-        shapes += [line_x, line_z]
-tri1 = Triangle(np.array([[1, 0, 5], [0, 0, 5], [0, 1, 5]]))
-tri2 = Triangle(np.array([[1, 0, 5], [1, 1, 5], [0, 1, 5]]))
+##for i in range(11):
+##        line_x = Line(np.array([[0, 0, i], [10, 0, i]]), RED)
+##        line_z = Line(np.array([[i, 0, 0], [i, 0, 10]]), BLUE)
+##        shapes += [line_x, line_z]
+shapes.append(Triangle(np.array([[1, 0, -10], [0, 0, -10], [0, 1, -10]]), RED))
+shapes.append(Triangle(np.array([[1, 0, -10], [1, 1, -10], [0, 1, -10]])))
+tri1 = Triangle(np.array([[1, 0, 5], [0, 0, 5], [0, 1, 5]]), BLUE)
+tri2 = Triangle(np.array([[1, 0, 5], [1, 1, 5], [0, 1, 5]]), BLUE)
 shapes.append(tri1)
 shapes.append(tri2)
 tri1 = Triangle(np.array([[1, 0, 6], [0, 0, 6], [0, 1, 6]]), GREEN)
@@ -178,6 +199,7 @@ shapes.append(tri2)
 
 # Run
 running = True
+t0= time.time()
 while running:
     # Rendering
     display.fill(BLACK)
@@ -188,14 +210,37 @@ while running:
     for shape in shapes:
         if shape.is_front():
             shape.draw()
+        else:
+            break
     display.blit(p.transform.flip(display, False, False), (0, 0))
     p.display.update()
+    # Controls
+    keys = p.key.get_pressed()
+    forward_speed, side_speed = (0, 0)
+    if keys[p.K_a]:
+        side_speed = -3
+    elif keys[p.K_d]:
+        side_speed = 3
+    if keys[p.K_w]:
+        forward_speed = 3
+    elif keys[p.K_s]:
+        forward_speed = -3
+    if keys[p.K_p]:
+        print(camera_position)
+        print(camera_direction)
     # Animate
-    t = time.time()
-    beta = -t
-    gamma = -0.2
-    camera_position = np.array([5*math.sin(t), 1, 5 + 5*math.cos(t)])
+    t1 = time.time()
+    dt = t1 - t0
+    t0 = t1
+    delta_angles = getAnglesFromMousePosition()
+    alpha += delta_angles[0]
+    beta += delta_angles[1]
+    gamma += delta_angles[2]
+    #beta = -t
+    #gamma = -0.2
+    #camera_position = np.array([5*math.sin(t), 1, 5 + 5*math.cos(t)])
     camera_direction = findCameraDirection(alpha, beta, gamma)
+    camera_position += forward_speed*dt*getRelativeAxes("forward") + side_speed*dt*getRelativeAxes("side")
     # Misc
     for event in p.event.get():
         if event.type == p.QUIT:
