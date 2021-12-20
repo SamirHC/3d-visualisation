@@ -1,4 +1,4 @@
-# 3D Visualisation by Syba27
+# 3D Visualisation
 
 ## Introduction
 
