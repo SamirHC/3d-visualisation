@@ -21,12 +21,12 @@ clock = p.time.Clock()
 FPS = 60
 
 # Colors
-BLACK = (0, 0, 0)
-WHITE = (255, 255, 255)
-GRAY = (128, 128, 128)
-RED = (255, 0, 0)
-GREEN = (0, 255, 0)
-BLUE = (0, 0, 255)
+BLACK = p.Color(0, 0, 0)
+WHITE = p.Color(255, 255, 255)
+GRAY = p.Color(128, 128, 128)
+RED = p.Color(255, 0, 0)
+GREEN = p.Color(0, 255, 0)
+BLUE = p.Color(0, 0, 255)
 
 #Objects
 class Line:
@@ -40,7 +40,7 @@ class Plane:
         self.normal = normal
 
 class Shape:
-    def __init__(self, vertices, color):
+    def __init__(self, vertices: np.ndarray, color: p.Color):
         self.vertices = vertices
         self.color = color
 
@@ -50,7 +50,7 @@ class Shape:
 
     def map_point_to_screen(self, point, camera_position, camera_screen, inverseAxisMatrix, shift, scale):
         line_to_camera = Line(point, camera_position - point)
-        intersection_point = intersectionOfLineAndPlane(line_to_camera, camera_screen)
+        intersection_point = get_line_plane_intersection(line_to_camera, camera_screen)
         mapped_point = ((np.dot(inverseAxisMatrix, intersection_point - camera_position)+shift)*scale)[:-1]
         return mapped_point
 
@@ -82,8 +82,9 @@ class Shape:
         return True if self.facing(camera_position, camera_direction) == 1 else False
 
 class Triangle(Shape):
-    def __init__(self, vertices, color=WHITE):  # Vertices of the triangle, (should be np.array of shape (3, 1))
+    def __init__(self, vertices: np.ndarray, color=WHITE):
         super().__init__(vertices, color)
+        assert vertices.shape == (3, 3)
         self.v1 = vertices[0]
         self.v2 = vertices[1]
         self.v3 = vertices[2]
@@ -105,57 +106,67 @@ class Segment(Shape):
 def unit(v: np.ndarray) -> np.ndarray:
     return v / np.linalg.norm(v)
 
-def angleBetweenVectors(u: np.ndarray, v: np.ndarray):  # Returns angle between vectors measured in radians
+def get_angle_between_vectors(u: np.ndarray, v: np.ndarray):  # Returns angle between vectors measured in radians
     # THETA = arccos(u.v/||u||||v||) 
     return np.arccos(np.clip(np.dot(unit(u), unit(v)), -1.0, 1.0))
 
-def intersectionOfLineAndPlane(line: Line, plane: Plane):  # Returns the point (if any) of intersection between a line and a plane
-    v0 = plane.point
+def get_line_plane_intersection(line: Line, plane: Plane) -> np.ndarray | None:  # Returns the point (if any) of intersection between a line and a plane
+    """
+    Line is given by points p such that: p = p0 + tv, where p0 is a fixed point, v fixed direction vector, t scalar.
+    Plane is given by points q such that: n.(q - p1) = 0, where n is normal to plane, p1 fixed point.
+    
+    Result is given by: p = p0 + (n.(p1-p0) / n.v) v
+    """
     p0 = line.point
+    v = line.vector
+    p1 = plane.point
     n = plane.normal
-    u = line.vector
-    if np.dot(n, u) == 0:
-        return np.array([0, 0, 0])
-    w = p0 - v0
-    s = -np.dot(n, w) / np.dot(n, u)  # Calculates the value of the parametric variable
-    return p0 + s*u
+    
+    ndotv = np.dot(n, v)   
+    if np.isclose(ndotv, 0):
+        return None
+    
+    t = np.dot(n, p1 - p0) / ndotv
+    return p0 + t*v
     
 # Camera
-def getAxisMatrix(ALPHA, BETA, GAMMA):
+def get_rotation_matrix(alpha: float, beta: float, gamma: float) -> np.ndarray:
+    # Anticlockwise rotations
+    c, s = np.cos(alpha), np.sin(alpha)
     alpha_rotation_matrix = np.array([
-        [math.cos(ALPHA), -math.sin(ALPHA), 0],
-        [math.sin(ALPHA), math.cos(ALPHA), 0],
+        [c, -s, 0],
+        [s, c, 0],
         [0, 0, 1]
-        ])  # Matrix required to rotate a plane by ALPHA in the xy plane
+        ])
+    # Matrix required to rotate a plane by BETA in the xz plane
+    c, s = np.cos(beta), np.sin(beta)
     beta_rotation_matrix = np.array([
-        [math.cos(BETA), 0, -math.sin(BETA)],
+        [c, 0, -s],
         [0, 1, 0],
-        [math.sin(BETA), 0, math.cos(BETA)]
-        ])  # Matrix required to rotate a plane by ALPHA in the xz plane
+        [s, 0, c]
+        ])
+    # Matrix required to rotate a plane by GAMMA in the yz plane
+    c, s = np.cos(gamma), np.sin(gamma)
     gamma_rotation_matrix = np.array([
         [1, 0, 0],
-        [0, math.cos(GAMMA), -math.sin(GAMMA)],
-        [0, math.sin(GAMMA), math.cos(GAMMA)]
-        ])  # Matrix required to rotate a plane by ALPHA in the yz plane
+        [0, c, -s],
+        [0, s, c]
+        ])
     resultant_matrix = np.dot(np.dot(alpha_rotation_matrix, beta_rotation_matrix), gamma_rotation_matrix)
     return resultant_matrix
         
-def findCameraDirection(ALPHA, BETA, GAMMA):
-    i = math.sin(ALPHA)*math.sin(GAMMA) - math.cos(ALPHA)*math.sin(BETA)*math.cos(GAMMA)
-    j = -math.cos(ALPHA)*math.sin(GAMMA) - math.sin(ALPHA)*math.sin(BETA)*math.cos(GAMMA)
-    k = math.cos(BETA)*math.cos(GAMMA)
+def get_camera_direction(alpha, beta, gamma):
+    i = np.sin(alpha)*np.sin(gamma) - np.cos(alpha)*np.sin(beta)*np.cos(gamma)
+    j = -np.cos(alpha)*np.sin(gamma) - np.sin(alpha)*np.sin(beta)*np.cos(gamma)
+    k = np.cos(beta)*np.cos(gamma)
     return np.array([i, j, k])
 
-def getInverseAxisMatrix(ALPHA, BETA, GAMMA):
-    resultant_matrix = np.linalg.inv(getAxisMatrix(ALPHA, BETA, GAMMA))
-    return resultant_matrix
-
-def getAnglesFromMousePosition():
+def get_angles_from_mouse() -> tuple[float, float, float]:
     x, y = p.mouse.get_rel()
-    ALPHA = 0
-    BETA = x/DISPLAY_WIDTH
-    GAMMA = y/DISPLAY_HEIGHT
-    return np.array([ALPHA, BETA, GAMMA])
+    alpha = 0
+    beta = x / DISPLAY_WIDTH
+    gamma = y / DISPLAY_HEIGHT
+    return alpha, beta, gamma
 
 def getRelativeAxes(key, camera_direction):
     axesDict = {}
@@ -202,10 +213,10 @@ async def main():
     y0 = 0.  # y coordinate of camera
     z0 = 0.  # z coordinate of camera
 
-    axisMatrix = getAxisMatrix(alpha, beta, gamma)  # The orientation of the xyz axis relative to the camera
+    axisMatrix = get_rotation_matrix(alpha, beta, gamma)  # The orientation of the xyz axis relative to the camera
     inverseAxisMatrix = np.linalg.inv(axisMatrix)  # The inverse of the above,  used in order to map back to the display
     camera_position = np.array([x0, y0, z0])  # Initially at the origin, position given as a coordinate np.array
-    camera_direction = findCameraDirection(alpha, beta, gamma)  # Direction is given as a unit vector np.array and is the normal to the camera_screen
+    camera_direction = get_camera_direction(alpha, beta, gamma)  # Direction is given as a unit vector np.array and is the normal to the camera_screen
     camera_screen = [camera_position + camera_direction, camera_direction]  # Represents the plane the display is in [point, normal unit vector]
     shift = np.array([0.5, 0.5, 0])
     scale = np.array([DISPLAY_WIDTH, DISPLAY_WIDTH, 0])
@@ -216,7 +227,7 @@ async def main():
         # Rendering
         display.fill(BLACK)
         camera_screen = Plane(camera_position + camera_direction, camera_direction)  # Represents the plane the display is in.
-        axisMatrix = getAxisMatrix(alpha, beta, gamma)
+        axisMatrix = get_rotation_matrix(alpha, beta, gamma)
         inverseAxisMatrix = np.linalg.inv(axisMatrix)
         shapes.sort(key=lambda x: x.distance_from_camera(camera_position, camera_direction), reverse=True)
         for shape in shapes:
@@ -246,14 +257,14 @@ async def main():
         t1 = time.time()
         dt = t1 - t0
         t0 = t1
-        delta_angles = getAnglesFromMousePosition()
+        delta_angles = get_angles_from_mouse()
         alpha += delta_angles[0]
         beta += delta_angles[1]
         gamma += delta_angles[2]
         #beta = -t
         #gamma = -0.2
         #camera_position = np.array([5*math.sin(t), 1, 5 + 5*math.cos(t)])
-        camera_direction = findCameraDirection(alpha, beta, gamma)
+        camera_direction = get_camera_direction(alpha, beta, gamma)
         camera_position += forward_speed*dt*getRelativeAxes("forward", camera_direction) + side_speed*dt*getRelativeAxes("side", camera_direction)
         # Misc
         for event in p.event.get():
