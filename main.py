@@ -1,6 +1,5 @@
 import asyncio
 import pygame as p
-import math
 import numpy as np
 import time
 
@@ -28,7 +27,7 @@ RED = p.Color(255, 0, 0)
 GREEN = p.Color(0, 255, 0)
 BLUE = p.Color(0, 0, 255)
 
-MOVE_SPEED = 3
+MOVE_SPEED = 5
 
 #Objects
 class Line:
@@ -75,13 +74,13 @@ class Shape:
         return self.center - camera_position
 
     def distance_from_camera(self, camera_position, camera_direction):
-        return np.linalg.norm(self.vector_from_camera(camera_position))*self.facing(camera_position, camera_direction)
+        return np.linalg.norm(self.vector_from_camera(camera_position)) * self.facing(camera_position, camera_direction)
 
     def facing(self, camera_position, camera_direction):
         return -np.sign(np.dot(self.vector_from_camera(camera_position), camera_direction))
 
     def is_front(self, camera_position, camera_direction):
-        return True if self.facing(camera_position, camera_direction) == 1 else False
+        return self.facing(camera_position, camera_direction) == 1
 
 class Triangle(Shape):
     def __init__(self, vertices: np.ndarray, color=WHITE):
@@ -154,8 +153,7 @@ def get_rotation_matrix(alpha: float, beta: float, gamma: float) -> np.ndarray:
         [0, c, -s],
         [0, s, c]
         ])
-    resultant_matrix = np.dot(np.dot(alpha_rotation_matrix, beta_rotation_matrix), gamma_rotation_matrix)
-    return resultant_matrix
+    return np.dot(np.dot(alpha_rotation_matrix, beta_rotation_matrix), gamma_rotation_matrix)
         
 def get_camera_direction(alpha, beta, gamma):
     i = np.sin(alpha)*np.sin(gamma) - np.cos(alpha)*np.sin(beta)*np.cos(gamma)
@@ -170,18 +168,9 @@ def get_angles_from_mouse() -> tuple[float, float, float]:
     gamma = y / DISPLAY_HEIGHT
     return alpha, beta, gamma
 
-def getRelativeAxes(key, camera_direction):
-    axesDict = {}
-    axesDict["forward"] = -camera_direction
-    axesDict["forward"][1] = 0.
-    axesDict["side"] = np.cross(camera_direction, np.array([0, 1, 0]))
-    return axesDict[key]
-
-
-
 
 #Testing
-shapes = []
+shapes: list[Shape] = []
 shapes.append(Triangle(np.array([[1, 0, -10], [0, 0, -10], [0, 1, -10]]), RED))
 shapes.append(Triangle(np.array([[1, 0, -10], [1, 1, -10], [0, 1, -10]])))
 
@@ -204,46 +193,46 @@ async def main():
     y0 = 0.  # y coordinate of camera
     z0 = 0.  # z coordinate of camera
 
-    axisMatrix = get_rotation_matrix(alpha, beta, gamma)  # The orientation of the xyz axis relative to the camera
-    inverseAxisMatrix = np.linalg.inv(axisMatrix)  # The inverse of the above,  used in order to map back to the display
     camera_position = np.array([x0, y0, z0])  # Initially at the origin, position given as a coordinate np.array
     camera_direction = get_camera_direction(alpha, beta, gamma)  # Direction is given as a unit vector np.array and is the normal to the camera_screen
-    camera_screen = Plane(camera_position + camera_direction, camera_direction)  # Represents the plane the display is in [point, normal unit vector]
-    shift = np.array([0.5, 0.5, 0])
-    scale = np.array([DISPLAY_WIDTH, DISPLAY_WIDTH, 0])
+    SHIFT = np.array([0.5, 0.5, 0])
+    SCALE = np.array([DISPLAY_WIDTH, DISPLAY_WIDTH, 0])
 
     t0 = time.time()
     
     running = True
     while running:
+        camera_screen = Plane(camera_position + camera_direction, camera_direction)  # Represents the plane the display is in [point, normal unit vector
+        axisMatrix = get_rotation_matrix(alpha, beta, gamma)  # The orientation of the xyz axis relative to the camera
+        inverseAxisMatrix = np.linalg.inv(axisMatrix)  # The inverse of the above, used in order to map back to the display
+        
+        # Controls
+        keys = p.key.get_pressed()
+        forward_speed, side_speed, fly_speed = 0, 0, 0
+        if keys[p.K_a]:
+            side_speed -= MOVE_SPEED
+        if keys[p.K_d]:
+            side_speed += MOVE_SPEED
+        if keys[p.K_w]:
+            forward_speed += MOVE_SPEED
+        if keys[p.K_s]:
+            forward_speed -= MOVE_SPEED
+        if keys[p.K_SPACE]:
+            fly_speed += MOVE_SPEED
+        if keys[p.K_LSHIFT]:
+            fly_speed -= MOVE_SPEED
+        if keys[p.K_ESCAPE]:
+            p.event.post(p.event.Event(p.QUIT))
+        
         # Rendering
         display.fill(BLACK)
-        camera_screen = Plane(camera_position + camera_direction, camera_direction)  # Represents the plane the display is in.
-        axisMatrix = get_rotation_matrix(alpha, beta, gamma)
-        inverseAxisMatrix = np.linalg.inv(axisMatrix)
         shapes.sort(key=lambda x: x.distance_from_camera(camera_position, camera_direction), reverse=True)
         for shape in shapes:
             if shape.is_front(camera_position, camera_direction):
-                shape.draw(camera_position, camera_screen, inverseAxisMatrix, shift, scale)
+                shape.draw(camera_position, camera_screen, inverseAxisMatrix, SHIFT, SCALE)
             else:
                 break
         display.blit(p.transform.flip(display, False, False), (0, 0))
-        # Controls
-        keys = p.key.get_pressed()
-        forward_speed, side_speed = 0, 0
-        if keys[p.K_a]:
-            side_speed = -MOVE_SPEED
-        elif keys[p.K_d]:
-            side_speed = MOVE_SPEED
-        if keys[p.K_w]:
-            forward_speed = MOVE_SPEED
-        elif keys[p.K_s]:
-            forward_speed = -MOVE_SPEED
-        elif keys[p.K_p]:
-            print(camera_position)
-            print(camera_direction)
-        elif keys[p.K_ESCAPE]:
-            p.event.post(p.event.Event(p.QUIT))
 
         t1 = time.time()
         dt = t1 - t0
@@ -257,9 +246,10 @@ async def main():
         forward_v = -camera_direction
         forward_v[1] = 0.
         side_v = np.cross(camera_direction, np.array([0, 1, 0]))
+        fly_v = np.array([0., 1., 0.])
 
         camera_direction = get_camera_direction(alpha, beta, gamma)
-        camera_position += forward_speed*dt*forward_v + side_speed*dt*side_v
+        camera_position += forward_speed*dt*forward_v + side_speed*dt*side_v + fly_speed*dt*fly_v
         
         for event in p.event.get():
             if event.type == p.QUIT:
