@@ -7,17 +7,18 @@ import time
 p.init()
 
 # Display Settings
-display_width = 800
-display_height = 600
-display = p.display.set_mode((display_width, display_height))
 CAPTION = "3d"
+DISPLAY_WIDTH = 800
+DISPLAY_HEIGHT = 600
+
+display = p.display.set_mode((DISPLAY_WIDTH, DISPLAY_HEIGHT))
 p.display.set_caption(CAPTION)
 p.event.set_grab(True)
 p.mouse.set_visible(False)
 
 #Clock
 clock = p.time.Clock()
-FPS = 120
+FPS = 60
 
 # Colors
 BLACK = (0, 0, 0)
@@ -27,27 +28,97 @@ RED = (255, 0, 0)
 GREEN = (0, 255, 0)
 BLUE = (0, 0, 255)
 
+#Objects
+class Line:
+    def __init__(self, point: np.ndarray, vector: np.ndarray):
+        self.point = point
+        self.vector = vector
+
+class Plane:
+    def __init__(self, point: np.ndarray, normal: np.ndarray):
+        self.point = point
+        self.normal = normal
+
+class Shape:
+    def __init__(self, vertices, color):
+        self.vertices = vertices
+        self.color = color
+
+    @property
+    def center(self):
+        return np.sum(self.vertices, axis=0)/len(self.vertices)
+
+    def map_point_to_screen(self, point, camera_position, camera_screen, inverseAxisMatrix, shift, scale):
+        line_to_camera = Line(point, camera_position - point)
+        intersection_point = intersectionOfLineAndPlane(line_to_camera, camera_screen)
+        mapped_point = ((np.dot(inverseAxisMatrix, intersection_point - camera_position)+shift)*scale)[:-1]
+        return mapped_point
+
+    def map_vertices(self, camera_position, camera_screen, inverseAxisMatrix, shift, scale):
+        self.mapped_vertices = []
+        for vertex in self.vertices:
+            self.mapped_vertices.append(self.map_point_to_screen(vertex, camera_position, camera_screen, inverseAxisMatrix, shift, scale))
+        return self.mapped_vertices
+
+    def draw(self, camera_position, camera_screen, inverseAxisMatrix, shift, scale):
+        for mapped_vertex in self.map_vertices(camera_position, camera_screen, inverseAxisMatrix, shift, scale):
+            if np.linalg.norm(mapped_vertex) > DISPLAY_WIDTH**2:  # Coordinates can't be too extreme
+                return
+        self.draw_method()
+
+    def draw_method(self):
+        p.draw.polygon(display, self.color, np.rint(self.mapped_vertices))
+
+    def vector_from_camera(self, camera_position):
+        return self.center - camera_position
+
+    def distance_from_camera(self, camera_position, camera_direction):
+        return np.linalg.norm(self.vector_from_camera(camera_position))*self.facing(camera_position, camera_direction)
+
+    def facing(self, camera_position, camera_direction):
+        return -np.sign(np.dot(self.vector_from_camera(camera_position), camera_direction))
+
+    def is_front(self, camera_position, camera_direction):
+        return True if self.facing(camera_position, camera_direction) == 1 else False
+
+class Triangle(Shape):
+    def __init__(self, vertices, color=WHITE):  # Vertices of the triangle, (should be np.array of shape (3, 1))
+        super().__init__(vertices, color)
+        self.v1 = vertices[0]
+        self.v2 = vertices[1]
+        self.v3 = vertices[2]
+
+    @property
+    def normal(self):
+        return np.cross(self.v2-self.v1, self.v3-self.v1)
+
+class Segment(Shape):
+    def __init__(self, vertices, color=WHITE):
+        super().__init__(vertices, color)
+        self.v1 = vertices[0]
+        self.v2 = vertices[1]
+
+    def draw_method(self):
+        p.draw.line(display, self.color, *np.rint(self.mapped_vertices))
+
 # Vector Calculations
-def unitVector(vector):
-    return vector / np.linalg.norm(vector)
+def unit(v: np.ndarray) -> np.ndarray:
+    return v / np.linalg.norm(v)
 
-def angleBetweenVectors(v1, v2):  # Returns angle between vectors measured in radians
-    v1_u = unitVector(v1)
-    v2_u = unitVector(v2)
-    return np.arccos(np.clip(np.dot(v1_u, v2_u), -1.0, 1.0))
+def angleBetweenVectors(u: np.ndarray, v: np.ndarray):  # Returns angle between vectors measured in radians
+    # THETA = arccos(u.v/||u||||v||) 
+    return np.arccos(np.clip(np.dot(unit(u), unit(v)), -1.0, 1.0))
 
-def intersectionOfLineAndPlane(lineData, planeData):  # Returns the point (if any) of intersection between a line and a plane
-    # lineData is in the form :: [p, v] where p is the point and v is a vector, given as np.arrays
-    # planeData is in the form :: [p, n] as above, but n is the normal vector to the plane
-    V0 = planeData[0]
-    P0 = lineData[0]
-    n = planeData[1]
-    u = lineData[1]
+def intersectionOfLineAndPlane(line: Line, plane: Plane):  # Returns the point (if any) of intersection between a line and a plane
+    v0 = plane.point
+    p0 = line.point
+    n = plane.normal
+    u = line.vector
     if np.dot(n, u) == 0:
         return np.array([0, 0, 0])
-    w = P0 - V0
+    w = p0 - v0
     s = -np.dot(n, w) / np.dot(n, u)  # Calculates the value of the parametric variable
-    return P0 + s*u
+    return p0 + s*u
     
 # Camera
 def getAxisMatrix(ALPHA, BETA, GAMMA):
@@ -82,8 +153,8 @@ def getInverseAxisMatrix(ALPHA, BETA, GAMMA):
 def getAnglesFromMousePosition():
     x, y = p.mouse.get_rel()
     ALPHA = 0
-    BETA = x/display_width
-    GAMMA = y/display_height
+    BETA = x/DISPLAY_WIDTH
+    GAMMA = y/DISPLAY_HEIGHT
     return np.array([ALPHA, BETA, GAMMA])
 
 def getRelativeAxes(key, camera_direction):
@@ -94,68 +165,7 @@ def getRelativeAxes(key, camera_direction):
     return axesDict[key]
 
 
-#Objects
-class Shape:
-    def __init__(self, vertices, color):
-        self.vertices = vertices
-        self.color = color
 
-    @property
-    def center(self):
-        return np.sum(self.vertices, axis=0)/len(self.vertices)
-
-    def map_point_to_screen(self, point, camera_position, camera_screen, inverseAxisMatrix, shift, scale):
-        line_to_camera = [point, camera_position - point]
-        intersection_point = intersectionOfLineAndPlane(line_to_camera, camera_screen)
-        mapped_point = ((np.dot(inverseAxisMatrix, intersection_point - camera_position)+shift)*scale)[:-1]
-        return mapped_point
-
-    def map_vertices(self, camera_position, camera_screen, inverseAxisMatrix, shift, scale):
-        self.mapped_vertices = []
-        for vertex in self.vertices:
-            self.mapped_vertices.append(self.map_point_to_screen(vertex, camera_position, camera_screen, inverseAxisMatrix, shift, scale))
-        return self.mapped_vertices
-
-    def draw(self, camera_position, camera_screen, inverseAxisMatrix, shift, scale):
-        for mapped_vertex in self.map_vertices(camera_position, camera_screen, inverseAxisMatrix, shift, scale):
-            if np.linalg.norm(mapped_vertex) > display_width**2:  # Coordinates can't be too extreme
-                return
-        self.draw_method()
-
-    def draw_method(self):
-        p.draw.polygon(display, self.color, np.rint(self.mapped_vertices))
-
-    def vector_from_camera(self, camera_position):
-        return self.center - camera_position
-
-    def distance_from_camera(self, camera_position, camera_direction):
-        return np.linalg.norm(self.vector_from_camera(camera_position))*self.facing(camera_position, camera_direction)
-
-    def facing(self, camera_position, camera_direction):
-        return -np.sign(np.dot(self.vector_from_camera(camera_position), camera_direction))
-
-    def is_front(self, camera_position, camera_direction):
-        return True if self.facing(camera_position, camera_direction) == 1 else False
-
-class Triangle(Shape):
-    def __init__(self, vertices, color=WHITE):  # Vertices of the triangle, (should be np.array of shape (3, 1))
-        super().__init__(vertices, color)
-        self.v1 = vertices[0]
-        self.v2 = vertices[1]
-        self.v3 = vertices[2]
-
-    @property
-    def normal(self):
-        return np.cross(self.v2-self.v1, self.v3-self.v1)
-
-class Line(Shape):
-    def __init__(self, vertices, color=WHITE):
-        super().__init__(vertices, color)
-        self.v1 = vertices[0]
-        self.v2 = vertices[1]
-
-    def draw_method(self):
-        p.draw.line(display, self.color, *np.rint(self.mapped_vertices))
 
 #Testing
 shapes = []
@@ -198,14 +208,14 @@ async def main():
     camera_direction = findCameraDirection(alpha, beta, gamma)  # Direction is given as a unit vector np.array and is the normal to the camera_screen
     camera_screen = [camera_position + camera_direction, camera_direction]  # Represents the plane the display is in [point, normal unit vector]
     shift = np.array([0.5, 0.5, 0])
-    scale = np.array([display_width, display_width, 0])
+    scale = np.array([DISPLAY_WIDTH, DISPLAY_WIDTH, 0])
 
     running = True
     t0= time.time()
     while running:
         # Rendering
         display.fill(BLACK)
-        camera_screen = [camera_position + camera_direction, camera_direction]  # Represents the plane the display is in.
+        camera_screen = Plane(camera_position + camera_direction, camera_direction)  # Represents the plane the display is in.
         axisMatrix = getAxisMatrix(alpha, beta, gamma)
         inverseAxisMatrix = np.linalg.inv(axisMatrix)
         shapes.sort(key=lambda x: x.distance_from_camera(camera_position, camera_direction), reverse=True)
