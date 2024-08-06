@@ -40,7 +40,7 @@ class Plane:
         self.point = point
         self.normal = normal
 
-class Shape:
+class Polygon:
     def __init__(self, vertices: np.ndarray, color: p.Color):
         self.vertices = vertices
         self.color = color
@@ -52,19 +52,14 @@ class Shape:
     def map_point_to_screen(self, point, camera_position, camera_screen, inverseAxisMatrix, shift, scale):
         line_to_camera = Line(point, camera_position - point)
         intersection_point = get_line_plane_intersection(line_to_camera, camera_screen)
-        mapped_point = ((np.dot(inverseAxisMatrix, intersection_point - camera_position)+shift)*scale)[:-1]
-        return mapped_point
+        return ((inverseAxisMatrix @ (intersection_point - camera_position)+shift)*scale)[:-1]
 
-    def map_vertices(self, camera_position, camera_screen, inverseAxisMatrix, shift, scale):
-        self.mapped_vertices = []
-        for vertex in self.vertices:
-            self.mapped_vertices.append(self.map_point_to_screen(vertex, camera_position, camera_screen, inverseAxisMatrix, shift, scale))
+    def map_vertices(self, camera_position, camera_screen, inverseAxisMatrix, shift, scale):            
+        self.mapped_vertices = [self.map_point_to_screen(vertex, camera_position, camera_screen, inverseAxisMatrix, shift, scale) for vertex in self.vertices]
         return self.mapped_vertices
 
     def draw(self, camera_position, camera_screen, inverseAxisMatrix, shift, scale):
-        for mapped_vertex in self.map_vertices(camera_position, camera_screen, inverseAxisMatrix, shift, scale):
-            if np.linalg.norm(mapped_vertex) > DISPLAY_WIDTH**2:  # Coordinates can't be too extreme
-                return
+        self.map_vertices(camera_position, camera_screen, inverseAxisMatrix, shift, scale)
         self.draw_method()
 
     def draw_method(self):
@@ -82,7 +77,7 @@ class Shape:
     def is_front(self, camera_position, camera_direction):
         return self.facing(camera_position, camera_direction) == 1
 
-class Triangle(Shape):
+class Triangle(Polygon):
     def __init__(self, vertices: np.ndarray, color=WHITE):
         super().__init__(vertices, color)
         assert vertices.shape == (3, 3)
@@ -94,7 +89,7 @@ class Triangle(Shape):
     def normal(self):
         return np.cross(self.v2-self.v1, self.v3-self.v1)
 
-class Segment(Shape):
+class Segment(Polygon):
     def __init__(self, vertices, color=WHITE):
         super().__init__(vertices, color)
         self.v1 = vertices[0]
@@ -153,7 +148,7 @@ def get_rotation_matrix(alpha: float, beta: float, gamma: float) -> np.ndarray:
         [0, c, -s],
         [0, s, c]
         ])
-    return np.dot(np.dot(alpha_rotation_matrix, beta_rotation_matrix), gamma_rotation_matrix)
+    return alpha_rotation_matrix @ beta_rotation_matrix @ gamma_rotation_matrix
         
 def get_camera_direction(alpha, beta, gamma):
     i = np.sin(alpha)*np.sin(gamma) - np.cos(alpha)*np.sin(beta)*np.cos(gamma)
@@ -170,18 +165,18 @@ def get_angles_from_mouse() -> tuple[float, float, float]:
 
 
 #Testing
-shapes: list[Shape] = []
-shapes.append(Triangle(np.array([[1, 0, -10], [0, 0, -10], [0, 1, -10]]), RED))
-shapes.append(Triangle(np.array([[1, 0, -10], [1, 1, -10], [0, 1, -10]])))
+polygons: list[Polygon] = []
+polygons.append(Triangle(np.array([[1, 0, -10], [0, 0, -10], [0, 1, -10]]), RED))
+polygons.append(Triangle(np.array([[1, 0, -10], [1, 1, -10], [0, 1, -10]])))
 
-shapes.append(Triangle(np.array([[1, 0, 5], [0, 0, 5], [0, 1, 5]]), BLUE))
-shapes.append(Triangle(np.array([[1, 0, 5], [1, 1, 5], [0, 1, 5]]), BLUE))
+polygons.append(Triangle(np.array([[1, 0, 5], [0, 0, 5], [0, 1, 5]]), BLUE))
+polygons.append(Triangle(np.array([[1, 0, 5], [1, 1, 5], [0, 1, 5]]), BLUE))
 
-shapes.append(Triangle(np.array([[1, 0, 6], [0, 0, 6], [0, 1, 6]]), GREEN))
-shapes.append(Triangle(np.array([[1, 0, 6], [1, 1, 6], [0, 1, 6]]), GREEN))
+polygons.append(Triangle(np.array([[1, 0, 6], [0, 0, 6], [0, 1, 6]]), GREEN))
+polygons.append(Triangle(np.array([[1, 0, 6], [1, 1, 6], [0, 1, 6]]), GREEN))
 
-shapes.append(Triangle(np.array([[0, 0, 5], [0, 0, 6], [0, 1, 6]]), GRAY))
-shapes.append(Triangle(np.array([[0, 1, 6], [0, 1, 5], [0, 0, 5]]), GRAY))
+polygons.append(Triangle(np.array([[0, 0, 5], [0, 0, 6], [0, 1, 6]]), GRAY))
+polygons.append(Triangle(np.array([[0, 1, 6], [0, 1, 5], [0, 0, 5]]), GRAY))
 
 # Run
 async def main():
@@ -226,12 +221,11 @@ async def main():
         
         # Rendering
         display.fill(BLACK)
-        shapes.sort(key=lambda x: x.distance_from_camera(camera_position, camera_direction), reverse=True)
-        for shape in shapes:
-            if shape.is_front(camera_position, camera_direction):
-                shape.draw(camera_position, camera_screen, inverseAxisMatrix, SHIFT, SCALE)
-            else:
-                break
+        sorted_polygons = sorted(polygons, key=lambda x: -x.distance_from_camera(camera_position, camera_direction))
+        for polygon in sorted_polygons:
+            if polygon.is_front(camera_position, camera_direction):
+                polygon.draw(camera_position, camera_screen, inverseAxisMatrix, SHIFT, SCALE)
+        
         display.blit(p.transform.flip(display, False, False), (0, 0))
 
         t1 = time.time()
