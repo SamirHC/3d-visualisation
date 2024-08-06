@@ -28,6 +28,8 @@ RED = p.Color(255, 0, 0)
 GREEN = p.Color(0, 255, 0)
 BLUE = p.Color(0, 0, 255)
 
+MOVE_SPEED = 3
+
 #Objects
 class Line:
     def __init__(self, point: np.ndarray, vector: np.ndarray):
@@ -180,28 +182,17 @@ def getRelativeAxes(key, camera_direction):
 
 #Testing
 shapes = []
-##for i in range(11):
-##        line_x = Line(np.array([[0, 0, i], [10, 0, i]]), RED)
-##        line_z = Line(np.array([[i, 0, 0], [i, 0, 10]]), BLUE)
-##        shapes += [line_x, line_z]
 shapes.append(Triangle(np.array([[1, 0, -10], [0, 0, -10], [0, 1, -10]]), RED))
 shapes.append(Triangle(np.array([[1, 0, -10], [1, 1, -10], [0, 1, -10]])))
-tri1 = Triangle(np.array([[1, 0, 5], [0, 0, 5], [0, 1, 5]]), BLUE)
-tri2 = Triangle(np.array([[1, 0, 5], [1, 1, 5], [0, 1, 5]]), BLUE)
-shapes.append(tri1)
-shapes.append(tri2)
-tri1 = Triangle(np.array([[1, 0, 6], [0, 0, 6], [0, 1, 6]]), GREEN)
-tri2 = Triangle(np.array([[1, 0, 6], [1, 1, 6], [0, 1, 6]]), GREEN)
-shapes.append(tri1)
-shapes.append(tri2)
-##tri1 = Triangle(np.array([[0, 0, 5], [0, 0, 6], [0, 1, 6]]), GRAY)
-##tri2 = Triangle(np.array([[0, 1, 6], [0, 1, 5], [0, 0, 5]]), GRAY)
-##shapes.append(tri1)
-##shapes.append(tri2)
-##tri1 = Triangle(np.array([[1, 0, 5], [1, 0, 6], [1, 1, 6]]), RED)
-##tri2 = Triangle(np.array([[1, 1, 6], [1, 1, 5], [1, 0, 5]]), RED)
-##shapes.append(tri1)
-##shapes.append(tri2)
+
+shapes.append(Triangle(np.array([[1, 0, 5], [0, 0, 5], [0, 1, 5]]), BLUE))
+shapes.append(Triangle(np.array([[1, 0, 5], [1, 1, 5], [0, 1, 5]]), BLUE))
+
+shapes.append(Triangle(np.array([[1, 0, 6], [0, 0, 6], [0, 1, 6]]), GREEN))
+shapes.append(Triangle(np.array([[1, 0, 6], [1, 1, 6], [0, 1, 6]]), GREEN))
+
+shapes.append(Triangle(np.array([[0, 0, 5], [0, 0, 6], [0, 1, 6]]), GRAY))
+shapes.append(Triangle(np.array([[0, 1, 6], [0, 1, 5], [0, 0, 5]]), GRAY))
 
 # Run
 async def main():
@@ -217,12 +208,13 @@ async def main():
     inverseAxisMatrix = np.linalg.inv(axisMatrix)  # The inverse of the above,  used in order to map back to the display
     camera_position = np.array([x0, y0, z0])  # Initially at the origin, position given as a coordinate np.array
     camera_direction = get_camera_direction(alpha, beta, gamma)  # Direction is given as a unit vector np.array and is the normal to the camera_screen
-    camera_screen = [camera_position + camera_direction, camera_direction]  # Represents the plane the display is in [point, normal unit vector]
+    camera_screen = Plane(camera_position + camera_direction, camera_direction)  # Represents the plane the display is in [point, normal unit vector]
     shift = np.array([0.5, 0.5, 0])
     scale = np.array([DISPLAY_WIDTH, DISPLAY_WIDTH, 0])
 
+    t0 = time.time()
+    
     running = True
-    t0= time.time()
     while running:
         # Rendering
         display.fill(BLACK)
@@ -236,41 +228,44 @@ async def main():
             else:
                 break
         display.blit(p.transform.flip(display, False, False), (0, 0))
-        p.display.update()
         # Controls
         keys = p.key.get_pressed()
-        forward_speed, side_speed = (0, 0)
+        forward_speed, side_speed = 0, 0
         if keys[p.K_a]:
-            side_speed = -3
+            side_speed = -MOVE_SPEED
         elif keys[p.K_d]:
-            side_speed = 3
+            side_speed = MOVE_SPEED
         if keys[p.K_w]:
-            forward_speed = 3
+            forward_speed = MOVE_SPEED
         elif keys[p.K_s]:
-            forward_speed = -3
+            forward_speed = -MOVE_SPEED
         elif keys[p.K_p]:
             print(camera_position)
             print(camera_direction)
         elif keys[p.K_ESCAPE]:
-            p.event.post(p.QUIT)
-        # Animate
+            p.event.post(p.event.Event(p.QUIT))
+
         t1 = time.time()
         dt = t1 - t0
         t0 = t1
-        delta_angles = get_angles_from_mouse()
-        alpha += delta_angles[0]
-        beta += delta_angles[1]
-        gamma += delta_angles[2]
-        #beta = -t
-        #gamma = -0.2
-        #camera_position = np.array([5*math.sin(t), 1, 5 + 5*math.cos(t)])
+        
+        d0, d1, d2 = get_angles_from_mouse()
+        alpha += d0
+        beta += d1
+        gamma += d2
+        
+        forward_v = -camera_direction
+        forward_v[1] = 0.
+        side_v = np.cross(camera_direction, np.array([0, 1, 0]))
+
         camera_direction = get_camera_direction(alpha, beta, gamma)
-        camera_position += forward_speed*dt*getRelativeAxes("forward", camera_direction) + side_speed*dt*getRelativeAxes("side", camera_direction)
-        # Misc
+        camera_position += forward_speed*dt*forward_v + side_speed*dt*side_v
+        
         for event in p.event.get():
             if event.type == p.QUIT:
                 running = False
-        
+                
+        p.display.update()
         clock.tick(FPS)
         await asyncio.sleep(0)
 
